@@ -14,3 +14,11 @@ docs/CLAUDE_DESIGN_PROMPT.md
 
 # Local test evidence and video assets; export a reviewed bundle separately.
 demo-artifacts/
+
+# Local-only design prompts and generated deploy output
+docs/CLAUDE_DESIGN_BRAND_PROMPT.md
+deploy/
+.vercel/
+
+# Local only
+CLAUDE.md
