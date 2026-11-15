@@ -12,29 +12,24 @@ from typing import Awaitable, Callable
 
 from fastapi import APIRouter, Body, Response, WebSocket, WebSocketDisconnect
 
+from app import screenshots
 from app.events import bus
 
 router = APIRouter()
 
 
-# ---------- latest screenshot (JPEG bytes kept in memory) ----------
-class _Shot:
-    data: bytes | None = None
-    n: int = 0
-
-
+# ---------- latest screenshot (stored by app/screenshots.py) ----------
 def set_screenshot(jpeg: bytes) -> str:
-    """Store the newest screenshot and return the URL to put in the `screenshot` event."""
-    _Shot.data = jpeg
-    _Shot.n += 1
-    return f"/api/screenshot?v={_Shot.n}"
+    """Kept for compatibility: store the newest screenshot, return its URL."""
+    return screenshots.set_latest(jpeg)
 
 
 @router.get("/api/screenshot")
 async def get_screenshot() -> Response:
-    if _Shot.data is None:
+    data = screenshots.get_latest()
+    if data is None:
         return Response(status_code=204)
-    return Response(_Shot.data, media_type="image/jpeg", headers={"Cache-Control": "no-store"})
+    return Response(data, media_type="image/jpeg", headers={"Cache-Control": "no-store"})
 
 
 # ---------- hooks the buttons call (defaults just publish events so the UI is testable) ----------
@@ -108,7 +103,10 @@ async def api_start_task(body: dict = Body(...)) -> dict:
     goal = str(body.get("goal", "")).strip()
     if not goal:
         return {"ok": False, "error": "Please say what you would like help with."}
-    await hooks.start_task(goal)
+    try:
+        await hooks.start_task(goal)
+    except Exception as exc:  # e.g. "I'm already helping with something" (safe to show)
+        return {"ok": False, "error": str(exc)}
     return {"ok": True}
 
 
