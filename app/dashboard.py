@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException, Request, Response
 from pydantic import BaseModel, Field
 from app.events import bus
 from app.integration import bridge
+from app import screenshots
 
 router = APIRouter()
 
@@ -22,21 +23,14 @@ hooks = Hooks()
 bridge.hooks = hooks
 
 
-class _Shot:
-    data = None
-    n = 0
-
-
 def set_screenshot(jpeg: bytes) -> str:
     if not isinstance(jpeg, bytes):
         raise TypeError('Screenshot must be JPEG bytes')
-    _Shot.data = jpeg
-    _Shot.n += 1
-    return f'/api/screenshot?v={_Shot.n}'
+    return screenshots.set_latest(jpeg)
 
 
 def clear_screenshot():
-    _Shot.data = None
+    screenshots.clear()
 
 
 
@@ -71,7 +65,7 @@ async def api_state():
 
 @router.get('/api/screenshot')
 async def screenshot():
-    image = await bridge.screenshot() or _Shot.data
+    image = await bridge.screenshot() or screenshots.get_latest()
     if image is None:
         return Response(status_code=204)
     return Response(image, media_type='image/jpeg', headers={'Cache-Control': 'no-store'})

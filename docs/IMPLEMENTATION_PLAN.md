@@ -38,7 +38,39 @@ The UI work does **not** touch `app/*`. It only needs the event contract in `doc
 | `app/dev_replay.py` | `POST /api/dev/replay?scenario=dal` or `iphone` plays an explicitly simulated call; opt-in with `DEV_REPLAY=true` (localhost only) |
 | `static/*` | The dashboard (`/dashboard`). Practice mode with no server: `/static/dashboard.html?demo=dal` |
 
-**Plugging in:** when your task runner is ready, replace the button defaults, for example `dashboard.hooks.confirm = task_runner.confirm` (same for `cancel`, `stop`, `reset`, `start_task`). Prefer `from app.integration import attach_runner; attach_runner(runner)` so the same runner receives both voice and dashboard commands. Unset hooks no longer publish fake successes. Run with `uvicorn app.main:app --reload --port 8000`, open `http://localhost:8000/talk` for the free browser voice demo and `http://localhost:8000/dashboard` to watch it. The real browser agent and safety guard must be added before browser tasks can run. `pytest` runs the tests.
+**Plugging in:** when your task runner is ready, replace the button defaults, for example `dashboard.hooks.confirm = task_runner.confirm` (same for `cancel`, `stop`, `reset`, `start_task`). Prefer `from app.integration import attach_runner; attach_runner(runner)` so the same runner receives both voice and dashboard commands. Unset hooks no longer publish fake successes. Run with `uvicorn app.main:app --reload --port 8000`, open `http://localhost:8000/talk` for the free browser voice demo and `http://localhost:8000/dashboard` to watch it. The real browser agent and safety guard are now initialized and attached at server startup. The accepted demo uses the browser phone interface; real telephone streaming remains unverified. `pytest` runs the tests.
+
+## 2c. Browser agent (built; needs one real-key test)
+
+Milestones 4, 5 and the browser half of 7 and 8 are in. All `pytest` tests pass (77), including real headless Chromium tests.
+
+| File | What it does |
+| --- | --- |
+| `app/actions.py` | One action vocabulary. `parse_function_call` maps Gemini 2.5 names (`click_at`, `type_text_at`...) and the newer docs' names (`click`, `type`...) to the same `Action` |
+| `app/safety.py` | `check(action, page)` returns allow / ask_first / block, in the handoff's rule order, with plain-words reasons. `check_page(page)` runs after every action |
+| `app/browser.py` | The visible Chromium: real mouse glide and click, typing, scrolling, new tabs followed, reset |
+| `app/computer_use.py` | The model adapter (`GeminiProvider`) and a `ScriptedProvider` for tests. The only file that knows how Gemini talks |
+| `app/task_runner.py` | `runner` (module-level): the loop, approvals, stop, timeout, recovery. Publishes everything on the event bus |
+| `app/call_log.py`, `scripts/stats.py` | Logs per call/task and the pitch numbers |
+| `scripts/try_task.py` | Run one task from the terminal. `--demo` needs no API key |
+
+**For Maulik (voice tools):** import `from app.task_runner import runner, TaskBusy` and map the tools directly:
+
+```python
+start_task(goal)     -> await runner.start(goal)               # raises TaskBusy with a sentence you can speak
+confirm_action()     -> await runner.confirm(by="voice")
+cancel_action()      -> await runner.cancel(by="voice")
+describe_screen()    -> await runner.describe()
+stop_task()          -> await runner.stop()                    # also call this yourself on the stop word
+```
+
+Subscribe to the bus (`bus.subscribe`) and speak `step` (status done), `needs_approval` (use `question`), `blocked` (use `reason`) and `task_finished` (use `summary`). Every one of those strings is already plain words. A `task_finished` with outcome `failed` or `timeout` is the cue for the "That didn't work, let me try another way" recovery line.
+
+**Step events now carry** an optional `point: {x, y}` (0 to 1 across the screenshot) on clicks and typing, and `screenshot` events carry `page_url`. The dashboard uses them for the click ripple and the address pill.
+
+**Not verified yet (needs a real `GEMINI_API_KEY`):** the exact Gemini request. Google's docs now describe a newer "Interactions API" with different model and action names. We built on `generate_content` with the typed `computer_use` tool, which matches the installed SDK. If a real call errors, only `GeminiProvider` in `app/computer_use.py` needs to change; everything else is model-independent. Run `python scripts/try_task.py "Go to YouTube and play a Ranveer Brar dal recipe video"` to find out. Set `COMPUTER_USE_MODEL` in `.env` to a model your key can use.
+
+**Still to do on the browser side:** a Claude computer-use fallback behind `make_provider()`, tuning step speed for the 90-second demo goal, and running each demo task five times for the numbers.
 
 ## 3. Build order
 

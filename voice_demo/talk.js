@@ -26,6 +26,7 @@ async function helperStatus() {
     const state = await response.json();
     $('helperStatus').textContent = state.helper_connected ? 'Laptop helper connected' : 'Laptop helper not connected';
     $('helperStatus').classList.toggle('online', state.helper_connected);
+    if (state.screenshot_url) showLaptop(state.screenshot_url);
     if (!state.helper_connected) $('taskDetail').textContent = state.voice_ready
       ? 'Voice is ready. Laptop actions need the computer helper.'
       : 'Add a Gemini key on the server to enable voice.';
@@ -135,6 +136,8 @@ function onMessage(event) {
       break;
     case 'needs_approval': notice(message.question); break;
     case 'blocked': notice(message.reason, true); break;
+    case 'approval_result': notice(''); break;
+    case 'screenshot': showLaptop(message.url); break;
     case 'task_started':
       $('taskSummary').textContent = message.goal;
       $('taskDetail').textContent = 'The laptop helper is starting.';

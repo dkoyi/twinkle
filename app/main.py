@@ -1,6 +1,7 @@
 """Run with: uvicorn app.main:app --reload --port 8000."""
 import asyncio
 import logging
+import os
 from contextlib import asynccontextmanager
 import time
 import anyio
@@ -16,7 +17,7 @@ from app.twilio_stream import router
 from app.browser_voice import router as browser_voice_router
 from app.dashboard import router as dashboard_router, state, clear_screenshot
 from app.integration import bridge
-from app.call_log import CallLog
+from app.call_log import CallLog, enabled as logs_enabled
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 @asynccontextmanager
@@ -24,12 +25,42 @@ async def lifespan(app):
     state.reset()
     clear_screenshot()
     call_log = CallLog(Path(__file__).resolve().parent.parent / "logs")
-    unsubscribers = [bus.subscribe(call_log.on_event),
-                    bus.subscribe(bridge.on_event)]
+    unsubscribers = [bus.subscribe(bridge.on_event)]
+    if logs_enabled():
+        unsubscribers.append(bus.subscribe(call_log.on_event))
+    browser = None
+    startup_task = None
     try:
+        if os.getenv('BROWSER_AUTOSTART', 'true').lower() != 'false':
+            from app.task_runner import browser, runner
+            async def start_helper():
+                try:
+                    await browser.start()
+                    bridge.attach(runner)
+                    await runner._show('preview', 0)
+                    # Keep the dashboard live after the last agent action too;
+                    # videos and loading pages continue changing between steps.
+                    while browser.started:
+                        await asyncio.sleep(1)
+                        try:
+                            await runner._show(runner.task_id or 'preview', runner._steps)
+                        except Exception:
+                            logging.getLogger(__name__).debug('Waiting for the next browser frame')
+                except Exception:
+                    logging.getLogger(__name__).exception('Browser startup failed')
+                    await bus.publish('error', where='browser', message='The laptop helper could not open. Restart the server after installing Chromium.')
+            # The clean start page is served by this app, so start accepting HTTP
+            # before the helper navigates there. Awaiting it here deadlocks startup.
+            startup_task = asyncio.create_task(start_helper())
         yield
     finally:
+        if startup_task:
+            startup_task.cancel()
+            await asyncio.gather(startup_task, return_exceptions=True)
         await bridge.close()
+        if browser:
+            await browser.stop()
+            bridge.attach(None)
         for unsubscribe in unsubscribers:
             unsubscribe()
 

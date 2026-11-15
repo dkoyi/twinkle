@@ -28,7 +28,7 @@ def test_demo_status_exposes_availability_without_credentials(client, monkeypatc
     from app.integration import bridge
     monkeypatch.setattr(bridge, 'runner', None)
     response = client.get('/api/voice/status')
-    assert response.json() == {'voice_ready': True, 'helper_connected': False}
+    assert response.json() == {'voice_ready': True, 'helper_connected': False, 'screenshot_url': None, 'media':None}
     assert 'fake-server-key' not in response.text
 
 

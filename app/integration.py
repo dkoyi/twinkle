@@ -47,6 +47,8 @@ class RunnerBridge:
             # A runner command must return promptly; its browser loop runs separately.
             kwargs = {'by': by} if 'by' in inspect.signature(callback).parameters else {}
             result = await callback(**kwargs)
+            if method in {'confirm', 'cancel'} and result is False:
+                return {'ok': False, 'message': 'There is no step waiting for approval.'}
             return {'ok': True, **({'description': result} if method == 'describe' else {})}
         except Exception:
             log.exception('Browser command failed: %s', name)

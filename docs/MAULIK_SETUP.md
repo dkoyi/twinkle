@@ -1,196 +1,123 @@
-# Maulik: phone and voice
+# TechTwin: phone-style browser demo
 
-Implemented locally: the phone webhook, authenticated audio stream, echo mode,
-Gemini Live conversation, interruptions, live transcripts, and five voice tools.
-The real phone/Gemini checks still need your accounts. Browser actions need
-Dhaush's runner registration described below. No browser actions are simulated as successes.
+## Run it
 
-## Free browser demo (recommended for the hackathon)
-
-The phone-style browser demo calls “Agent 1” through our existing Gemini voice
-connection. It shows a real connection timer, mute and hang-up controls, live
-transcripts, and the laptop helper’s actual availability. The page clearly labels
-the phone as simulated: it does not dial a telephone number.
-
-The browser demo needs only GEMINI_API_KEY in .env and the running Python server.
-It does not use Twilio or ngrok, and ignores VOICE_MODE (which only controls the
-phone transport). Gemini usage is subject to the project's free-tier availability
-and quotas; the application does not enable billing or upgrade any account.
-
-1. Start `uvicorn app.main:app --reload --port 8000` in the project virtual environment.
-2. Open http://localhost:8000/talk in Safari, Chrome, or another browser with microphone support.
-3. Click **Call Agent 1** on the simulated phone, then allow microphone access for localhost.
-4. Wait for TechTwin's greeting. Say hello, then talk over its reply to test interruption.
-5. Use **Stop task** to dispatch an immediate stop, or **End call**
-   to disconnect, release the microphone, and stop any computer task.
-
-Both sides' transcripts appear on the page and the shared event bus. The Gemini
-key stays on the server. Audio uses PCM16 at 16 kHz into Gemini and PCM16 at
-24 kHz out, without the telephone audio conversion. The microphone is resampled
-continuously in an AudioWorklet and browser speech playback is scheduled locally.
-
-This first browser demo accepts only same-origin localhost connections, not
-remote phone/ngrok browsers. Remote access needs a user authentication flow
-before it can safely control the shared computer. Headphones can help if the
-laptop's speakers cause echo. A page refresh or closed tab ends the session.
-The computer helper must still be connected by Dhaush for actual browser actions.
-
-Checks completed: 42 automated Python tests and 3 browser-call lifecycle checks, a successful Live session using the local
-key, and a real `/ws/voice` session that received Gemini greeting audio,
-transcripts, and an end-of-audio marker. Actual microphone/speaker interaction
-still needs the user's hardware check.
-
-## Account requirement: upgraded Twilio Voice
-
-Twilio's current trial experience blocks `<Stream>`, including the Media Stream
-needed by both echo mode and Gemini Live. Use an upgraded account with its own
-Voice-capable number. The number displayed under Try out Voice is a trial number;
-after upgrading, use the purchased number and configure its incoming-call webhook.
-See https://www.twilio.com/docs/usage/trials/try-out-voice#blocked-verbs.
-
-During the local trial test, ngrok received POST /voice from TwilioProxy/1.1
-without X-Twilio-Signature, and the app correctly returned 403. Disabling signature
-validation would not remove the trial's Stream restriction. Keep validation enabled.
-
-## 1. Start the server
-
-From this project folder:
+From the project folder:
 
 ```sh
 source .venv/bin/activate
-# On another machine, first: python3 -m venv .venv
 python -m pip install -r requirements-dev.txt
-cp -n .env.example .env
-uvicorn app.main:app --reload --port 8000
+python -m playwright install chromium
+uvicorn app.main:app --port 8000
 ```
 
-Open http://localhost:8000. You should see `TechTwin is running`.
-Python 3.11+ is supported; development tests ran on Python 3.14.
+Put `GEMINI_API_KEY` in the local `.env`. Do not put it in source files or chat.
+Our current free setup uses:
 
-## 2. Test the phone line with an echo
-
-1. In another terminal, run `ngrok http 8000`.
-2. Edit `.env`: set `PUBLIC_BASE_URL` to ngrok's HTTPS address (no path),
-   `TWILIO_ACCOUNT_SID` and `TWILIO_AUTH_TOKEN` from your Twilio console, and
-   `VOICE_MODE=echo`. Keep `TWILIO_VALIDATE_SIGNATURES=true`.
-3. Restart uvicorn after editing `.env`.
-4. In Twilio Console → Phone Numbers → your number → Voice configuration,
-   set **A call comes in** to Webhook, HTTP POST, and `https://YOUR-NGROK-HOST/voice`.
-5. Call your Twilio number. You should hear “Hi, this is TechTwin,” then your
-   own voice echoed back. Hang up when this works.
-
-The server verifies the Twilio signature against `PUBLIC_BASE_URL`, so it must
-match the address configured in Twilio. If ngrok's address changes, update both.
-The Try out Voice trial flow cannot run this streaming test; use the upgraded
-account's number. Never paste API keys in chat or commit `.env`.
-
-## 3. Switch to Gemini conversation
-
-1. Set `GEMINI_API_KEY` in `.env`, and change `VOICE_MODE=gemini`.
-2. Leave `GEMINI_LIVE_MODEL=gemini-2.5-flash-native-audio-preview-12-2025`
-   initially. It remains listed in the Live API documentation; availability and
-   quota depend on your Google project. You can change the model without changing code.
-3. Restart the server and call again. TechTwin should ask what you need help with.
-4. Talk over its reply: its queued speech should stop. Say “stop”: the code
-   sends `stop_task` immediately when that word arrives in the caller transcript.
-   Recognition/network latency still requires a live check.
-5. Look at http://localhost:8000/api/state to inspect transcript and call events.
-   Shrey's dashboard can connect to `/ws/dashboard`; when his `static/` files are
-   added, restart the server and open `/dashboard`.
-
-If Gemini fails to connect, the call closes and the dashboard receives a short
-error. Check model access, quota, and the key, then retry. Calls are limited to
-10 minutes and only one call is allowed at a time because the browser is shared.
-The dashboard endpoints are intended for the local hackathon demo; the ngrok
-origin also exposes them, so avoid sharing that address beyond your team.
-
-## 4. Browser integration for Dhaush
-
-The shared command bridge is implemented in `app/integration.py` and subscribed
-by the FastAPI lifespan. Do not add a second voice_command listener.
-After initializing the real TaskRunner at application startup, register it:
-
-```python
-from app.integration import attach_runner
-
-# runner = your initialized TaskRunner, with its visible browser ready
-attach_runner(runner)
+```dotenv
+COMPUTER_USE_MODEL=gemini-3.1-flash-lite
+DESCRIBE_MODEL=gemini-3.1-flash-lite
+BROWSER_AUTOSTART=true
+HEADLESS=false
+MAX_TASK_SECONDS=120
+MAX_TASK_STEPS=25
+DEV_REPLAY=false
+LOG_EVENTS=true
 ```
 
-The upstream `dashboard.hooks.start_task/confirm/cancel/stop/reset/describe`
-callback assignments also remain supported, but prefer one attach_runner call
-so voice and dashboard commands reach the same instance. Unset hooks fail with
-a visible error; there are no production fake-success defaults. The original
-`bus.state`, `bus.unsubscribe`, and `dashboard.set_screenshot(jpeg_bytes)` APIs
-are preserved. State is reduced exactly once, before listeners run.
+The server starts accepting requests, then launches a separate visible Chromium
+with a fresh profile. It does not control your Safari, Chrome personal profile,
+or native apps. Wait for **Laptop helper connected** on the phone page.
 
-The runner must implement the async API in BACKEND_HANDOFF.md: start(goal),
-confirm(), cancel(), stop(), reset(), describe(). start() schedules the task and
-returns its ID promptly. It must never await the full browser task. stop() must
-cancel the browser loop within one second. The bridge cancels in-flight commands
-when a stop arrives, and both dashboard controls and voice use the same event path.
-Expose `latest_screenshot` as JPEG bytes (or a get_screenshot() method returning
-bytes) for `/api/screenshot`. Never publish screenshot bytes on the JSON event bus.
+1. Open http://localhost:8000/talk and click **Call Agent 1**.
+2. Allow microphone access for localhost.
+3. Say: “Please find and play a Ranveer Brar dal recipe on YouTube.”
+4. Confirm the repeated goal. Wait for the playback question, then say “Yes, go ahead.”
+5. Open http://localhost:8000/dashboard to see the same transcript, real browser
+   screenshot, steps, approvals and blocks.
+6. **Stop task** or a spoken “stop” cancels the running task. **End call** releases
+   the microphone and sends a stop. **Start over** on the dashboard resets Chromium.
 
-Publish the established task events, screenshots, approval questions and results,
-blocks and completion summaries to `bus`. The runner owns the safety checks and
-pending-approval state. It must refuse confirmation when no step is pending and
-refuse a second task while one is running. The bridge does not simulate actions.
+Use modest speaker volume or headphones to reduce echo. Keep the helper browser
+visible so judges can see it working. Only one conversation/task runs at a time.
 
-The dashboard now serves Shrey's real UI at `/dashboard`, restores its state on
-reconnect, and exposes `/api/start_task`, `/api/confirm`, `/api/cancel`, `/api/stop`,
-`/api/reset` and `/api/screenshot`. Controls are local-only until authentication
-is added. Without a runner, task controls return a visible 503 explanation.
-Reset still clears the dashboard when no runner is connected. `/talk` and the
-dashboard link to each other, so keep both open during the demo.
+## What is simulated, and what is real?
 
-Internal events: voice_command carries request_id (string or null), name,
-arguments and call_sid. voice_command_result carries request_id and a JSON result
-with ok. Null request IDs are stop notifications that need no reply. Voice gets
-a failure if no command result arrives within two seconds.
+The phone shell is simulated. It does not dial a telephone number. Microphone
+input, Gemini Live replies, browser actions, screenshots, approval handling and
+logs are real. Gemini Live remains the conversation layer; Flash-Lite reasons
+over screenshots and calls browser functions. The dedicated computer-use preview
+returned zero free quota on our project. The earlier Flash preview worked, but
+its 20-request daily free allowance was exhausted during rehearsal.
 
-Call/task events are recorded under `logs/<date>/<call-or-task-id>.jsonl`.
-Audio is never logged. Transcripts and task goals are recorded for the demo;
-keep these local. The directory is gitignored. Run `python scripts/stats.py`
-to summarize real task durations/outcomes. Unsafe actions require human review;
-the script does not manufacture a zero count.
+Free quotas and model availability depend on the Google project. Do not enable
+billing just to run this demo. If a model is unavailable, show the actual recorded
+run and explain the failure. The app does not silently replace the real agent
+with a scripted success. See Google's pricing and rate-limit documentation:
+https://ai.google.dev/gemini-api/docs/pricing
+https://ai.google.dev/gemini-api/docs/rate-limits
 
-As of the last GitHub check on November 14, origin/main at 94eb6e0 contains the
-dashboard, shared foundation, replay and tests, but not app/task_runner.py or
-app/safety.py. There were no separate branches or open pull requests. Full voice-to-browser testing is waiting for
-that implementation. Supermemory remains deferred until this flow works.
+The Twilio streaming transport remains in the code, but the current Twilio trial
+blocks Stream. A real phone deployment needs an upgraded account/Voice number and
+a live telephone test. Keep `TWILIO_VALIDATE_SIGNATURES=true`.
 
-## 5. Run the automated checks
+## Safety check for the presentation
+
+End the voice call, then open the dashboard. Click **Start over**, then **Show safety
+check**. The real runner opens `/static/safety-demo.html`, a clearly labeled local
+page with a disabled password field. The guard must block before typing, and the
+dashboard must show the red banner. There is no real account or submitted form.
+
+The guard also blocks payments, card fields, unsupported sites and human-verification
+challenges. It asks before important actions, including opening a YouTube video.
+Voice approval requires a fresh spoken affirmative after the pending question;
+a model's confirm_action call alone is not consent. Dashboard approval is the
+explicit backup. Real-site challenges require human help, not automatic solving.
+
+## Integration details for the team
+
+The real `app.task_runner.runner` is initialized and registered with
+`attach_runner(runner)` during server startup. Voice and dashboard controls use
+one shared command bridge. Do not add a second voice_command listener.
+
+Preserved interfaces: `bus.state`, `bus.subscribe` (returns an unsubscribe function),
+`bus.unsubscribe`, `dashboard.set_screenshot`, `screenshots.set_latest` and
+`dashboard.hooks`. The handoff event names stay unchanged. No production hook
+publishes a fake successful task when the helper is missing.
+
+The browser starts in a background startup task because its local start page is
+served by this same app. Awaiting that page before HTTP startup can deadlock.
+State is reduced once, before event listeners; dashboard refresh retains task and
+approval state. Screenshots share the runner's in-memory JPEG store.
+
+Controls are localhost-only until user authentication exists. Do not expose laptop
+control to arbitrary ngrok visitors. Browser audio travels as PCM16 at 16 kHz in,
+24 kHz out; phone audio conversions apply only to Twilio.
+
+## Logs, checks and rehearsal
+
+Call/task events are stored under `logs/<date>/<call-or-task-id>.jsonl`. Audio and
+API keys are not logged; transcripts and task goals are. Keep logs local. The
+folder and `.env` are gitignored. Task IDs are unique across server restarts.
 
 ```sh
-source .venv/bin/activate
 python -m pytest -q
+node --test tests/voice/browser_ui.test.cjs
+python scripts/stats.py
 ```
 
-Tests do not use paid APIs, ngrok, or a real phone. They check G.711 codewords,
-audio rates and pitch, frame pacing, interrupted playback, stop words, signed
-webhooks, hangup cleanup, command responses, and a mocked Gemini session.
+The test suite includes real Chromium interaction checks. The statistics command
+reports logged durations/outcomes and steps after a guard block; that narrow
+metric does not prove that all possible unsafe actions were prevented.
 
-Reference docs checked during implementation:
+The terminal runner is also available:
 
-- https://ai.google.dev/gemini-api/docs/live
-- https://ai.google.dev/gemini-api/docs/live-guide
-- https://ai.google.dev/gemini-api/docs/live-tools
-- https://www.twilio.com/docs/voice/media-streams/websocket-messages
-- https://www.twilio.com/docs/usage/security
+```sh
+python scripts/try_task.py "Go to YouTube and find a dal recipe"
+```
 
-## Integration status and next phase
-
-- Merged origin/main through 94eb6e0 with the tested browser voice demo.
-- Unified the foundation's bus.state snapshot with the voice command bridge.
-- Added dashboard task controls, safe failure when no runner is connected,
-  screenshot compatibility, local call logs and a task statistics command.
-- Retained the dev replay as an opt-in (`DEV_REPLAY=true`); it is disabled by
-  default, restricted to localhost, and cannot start during a real voice session.
-  Simulated replay events are marked and excluded from call logs.
-- Verified a live Gemini greeting reaches `/ws/dashboard` and the call log.
-- Next gate: initialize and attach the real TaskRunner, then check an approved
-  YouTube task, a payment/password block and a stop within one second. Only after
-  those pass should the team start Supermemory.
-
-Phone UI lifecycle checks (no microphone recording): `node --test tests/voice/browser_ui.test.cjs`.
+`--demo`, `/api/dev/replay` and dashboard practice mode are scripted development
+helpers. They must be introduced as simulations and are not proof of real model
+success. Dev replay is disabled by default and its events are excluded from call
+logs. Supermemory remains optional and unimplemented. Five-person usability tests,
+a backup recording and Devpost submission still require the team.

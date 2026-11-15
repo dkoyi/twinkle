@@ -165,3 +165,69 @@ async def test_full_mocked_gemini_session_audio_tools_transcripts_and_cleanup(mo
         await asyncio.gather(task, return_exceptions=True)
         unsubscribe()
     assert closed and not bus._listeners and not bus._pending
+
+
+@pytest.mark.asyncio
+async def test_model_cannot_approve_without_a_fresh_spoken_yes():
+    events, ws = EventBus(), Socket()
+    brain = VoiceBrain(None, events, Playback(ws, 'stream', events, 'call'), 'call')
+    brain.session = FakeLiveSession()
+    async def runner(event):
+        if event['type'] == 'voice_command':
+            await events.publish('voice_command_result', request_id=event['request_id'], result={'ok':True})
+    events.subscribe(runner)
+    await brain.transcript('caller', 'yes', final=True)  # Agreement before the question is not consent.
+    await brain.on_event({'type':'needs_approval', 'question':'Shall I play this video?'})
+    call = SimpleNamespace(name='confirm_action',args={},id='approval')
+    await brain.tool(call, brain.command_epoch)
+    assert not brain.session.responses[-1].response['ok']
+    assert not any(e['type'] == 'voice_command' for e in events.history)
+    await brain.transcript('caller', 'yes please do not', final=True)
+    await brain.tool(call, brain.command_epoch)
+    assert not brain.session.responses[-1].response['ok']
+    await brain.transcript('caller', 'Yes, go ahead.', final=True)
+    await brain.tool(call, brain.command_epoch)
+    assert brain.session.responses[-1].response['ok']
+    await brain.on_event({'type':'approval_result', 'approved':True})
+    before = sum(e['type'] == 'voice_command' for e in events.history)
+    await brain.tool(call, brain.command_epoch)
+    assert brain.session.responses[-1].response['ok']
+    assert sum(e['type'] == 'voice_command' for e in events.history) == before
+
+
+@pytest.mark.asyncio
+async def test_stop_stays_latched_until_a_new_caller_turn():
+    events, ws = EventBus(), Socket()
+    brain = VoiceBrain(None, events, Playback(ws, 'stream', events, 'call'), 'call')
+    brain.session = FakeLiveSession()
+    await brain.transcript('caller', 'stop', final=True)
+    call = SimpleNamespace(name='start_task',args={'goal':'Open a video'},id='late-start')
+    await brain.tool(call, brain.command_epoch)
+    assert not brain.session.responses[-1].response['ok']
+    assert brain.stopped
+    await brain.transcript('caller', 'Help me with something else', final=True)
+    assert not brain.stopped
+
+
+@pytest.mark.asyncio
+async def test_spoken_yes_directly_resolves_real_pending_approval():
+    from app.integration import RunnerBridge
+    events, ws = EventBus(), Socket()
+    brain = VoiceBrain(None, events, Playback(ws, 'stream', events, 'call'), 'call')
+    brain.session = FakeLiveSession()
+    adapter = RunnerBridge(events)
+    calls = []
+    class Runner:
+        async def confirm(self, by='voice'):
+            calls.append(by)
+            await events.publish('approval_result', task_id='one', approved=True, by=by)
+            return True
+    adapter.attach(Runner())
+    events.subscribe(adapter.on_event)
+    events.subscribe(brain.on_event)
+    await events.publish('needs_approval', task_id='one', step_n=1, question='Shall I play?')
+    await brain.transcript('caller', 'Yes, go ahead.', final=True)
+    assert calls == ['voice']
+    assert events.state.pending_approval is None
+    await brain.tool(SimpleNamespace(name='confirm_action', args={}, id='late'), brain.command_epoch)
+    assert calls == ['voice']  # A later model tool cannot execute the click twice.

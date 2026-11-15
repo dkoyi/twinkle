@@ -2,13 +2,14 @@
 import json
 import logging
 import re
+import os
 from datetime import datetime
 from pathlib import Path
 
 log = logging.getLogger(__name__)
 LOGGED = {'call_started', 'call_ended', 'transcript', 'task_started', 'task_finished',
           'step', 'needs_approval', 'approval_result', 'blocked', 'error', 'reset',
-          'voice_command', 'voice_command_result'}
+          'voice_command', 'voice_command_result', 'screenshot'}
 
 
 class CallLog:
@@ -31,8 +32,26 @@ class CallLog:
             directory = self.root / date
             directory.mkdir(parents=True, exist_ok=True)
             with (directory / (identifier + '.jsonl')).open('a') as file:
-                file.write(json.dumps(event) + '\n')
+                row = dict(event)
+                if str(row.get('url', '')).startswith('data:'):
+                    row['url'] = '(inline image)'
+                file.write(json.dumps(row) + '\n')
         except OSError:
             log.exception('Could not write demo call log')
         if kind == 'call_ended':
             self.active_call = None
+
+    async def __call__(self, event):
+        await self.on_event(event)
+
+
+def enabled():
+    return os.getenv('LOG_EVENTS', 'true').lower() != 'false'
+
+
+def install(bus=None, root=Path('logs')):
+    if bus is None:
+        from app.events import bus
+    logger = CallLog(root)
+    bus.subscribe(logger)
+    return logger

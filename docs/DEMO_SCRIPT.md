@@ -1,51 +1,93 @@
-# TechTwin — 3-minute demo, backup plan, Devpost text
+# TechTwin — live demo and backup plan
 
-## Setup at the table
+## Before judges arrive
 
-- Laptop with the browser on the left half and the dashboard on the right half (or on a second screen facing the judges).
-- The TechTwin phone number printed big on a card: "Call TechTwin: (xxx) xxx-xxxx".
-- Phone charged and on speaker, in case a judge's phone can't call (a Twilio trial can only call verified numbers; add about $20 of credit to accept any caller).
-- The backup video ready to play.
+- Run the app with the project virtual environment: `uvicorn app.main:app --port 8000`.
+- Wait for the visible Chromium window to open. Keep it visible; it uses a fresh profile.
+- Open http://localhost:8000/talk and http://localhost:8000/dashboard.
+- The phone page must show **Laptop helper connected**. Allow its microphone when calling.
+- Keep speakers modest, or use headphones for the person speaking, to reduce echo.
+- Start over from the dashboard before each rehearsal. Close any previous Agent 1 call.
+- Use `COMPUTER_USE_MODEL=gemini-3.1-flash-lite` for this project's free-tier setup.
+  The dedicated computer-use preview returned zero free quota on our project; the
+  older Flash preview has a low daily free allowance.
+- Have a screen recording of an actual successful run ready. Practice mode is a
+  simulation and must be introduced as such; it is not evidence of a completed live task.
 
-## The 3 minutes
+## Three-minute script
 
-**0:00–0:20: the hook (one speaker)**
-> "My grandmother has a computer she's scared to touch. Every time she needs to join a call, she waits days for one of us, or worse, she lets a 'tech support' stranger take over her screen. So we built TechTwin."
+**0:00–0:20 — the problem**
 
-**0:20–1:40: the live call (a judge does it)**
-> "Call this number and ask it to do something on this laptop."
+“My grandmother can make a phone call, but a simple computer task can leave her
+waiting for help. TechTwin gives her a patient voice that can guide the browser.”
 
-The judge asks, for example, "Play a dal recipe video by Ranveer Brar." Everyone watches the browser move while the voice explains. TechTwin asks "Shall I press play?", and the judge says yes.
+**0:20–0:35 — explain the demo honestly**
 
-**1:40–2:15: the safety moment**
+“This phone interface is simulated in the browser. The voice conversation, Gemini
+reasoning, and actions in this separate browser window are live. Telephone
+transport is implemented, but needs paid Twilio access and a live phone test.”
 
-A teammate asks: "Buy me the new iPhone." TechTwin goes to the store, reaches checkout, **stops** and says it won't handle payments. The dashboard shows a red "Blocked: payment page" banner.
+**0:35–1:45 — real voice to real browser**
 
-**2:15–2:45: how it works + proof**
-> "A phone call streams through Twilio to Gemini, which talks with you. A computer-use agent drives a real browser, and a safety guard checks every single click: it asks before important clicks and never touches passwords or payments. We tested it with 5 people: average task time X seconds, zero unsafe actions."
+Click **Call Agent 1**. After the greeting, say:
 
-**2:45–3:00: the close**
-> "No app to install, no screen to share: just a phone call. TechTwin gives every grandparent a patient grandchild on call."
+“Please play the dal recipe saved on my family shortcuts.”
 
-## Judge questions to prepare for
+Confirm the repeated goal. The prepared demo start page contains a real YouTube recipe link. Let the model choose that shortcut from the screen; the click is still live and approval-gated. When Agent 1 asks
+whether to play the video, say **“Yes, go ahead.”** Point to the real browser,
+the screenshot, the transcript, and the approval banner.
 
-- *"Isn't it dangerous to let AI control a computer?"* → The safety guard: ask-first, no passwords or payments, an allowlist, a stop word, everything visible.
-- *"How is this different from remote support?"* → No stranger, no screen sharing, works with just a phone call, available 24/7.
-- *"What if the AI clicks the wrong thing?"* → It narrates before acting, important clicks need a spoken "yes", and "stop" halts everything.
-- *"How would this work on Grandma's own computer?"* → A small helper app the family installs once; the phone number links to her computer.
+If search is slow, use the dashboard Start task field as the disclosed backup:
+“Go directly to https://www.youtube.com/results?search_query=Ranveer+Brar+dal+recipe
+and show the search results. Do not open a video.” This tests the actual model;
+it is not a scripted playback. Do not solve verification challenges automatically.
 
-## Devpost text (fill in as you go)
+**1:45–2:15 — safety**
 
-**Inspiration:** [your real grandparent story, 2–3 sentences]
+End the voice call. Click **Start over**, then **Show safety check** on the dashboard.
+Say: “This is a local demonstration page with a disabled password field. It has no
+real account. Our guard sees the field and stops before any typing.”
 
-**What it does:** Call a phone number, say what you need, and TechTwin does it on your own computer's browser, explaining every step out loud and asking before anything important.
+Wait for the real runner to open that page and produce the red blocked banner.
+Do not say that this is a real checkout, real bank account, or completed purchase.
 
-**How we built it:** Twilio Media Streams → FastAPI server → Gemini Live API (real-time voice + tool calling) → computer-use agent with Playwright → safety guard → live dashboard over WebSockets.
+**2:15–2:45 — how it works and measured proof**
 
-**Challenges:** [audio format conversion, latency, making the agent reliable, the safety rules]
+“Gemini Live handles the conversation. A Gemini vision model reads screenshots
+and calls browser tools through Playwright. A separate guard checks each action.
+Important actions need approval; passwords, payments and unsupported sites stop
+the task. The family can see the same steps and transcript.”
 
-**Accomplishments:** [your test numbers]
+The controlled synthesized-caller rehearsal completed in 59.5 seconds overall (31.2 seconds in the browser task). This is one rehearsal, not a human usability study. Use only numbers actually measured. Run `python scripts/stats.py` for logged
+outcomes and durations. The post-block step count is one narrow check, not proof
+that every possible unsafe action was prevented. Do not claim five user tests
+until five people have actually tested the product.
 
-**What's next:** a one-click helper app for Grandma's computer, more languages (Hindi, Bengali, Spanish), and a family "watch-along" view.
+**2:45–3:00 — close**
 
-**Built with:** python, fastapi, twilio, gemini-live-api, playwright, websockets, ngrok
+“Today we are demonstrating the complete browser voice path. Next comes a verified
+telephone deployment and more testing with the people who would use this.”
+
+## Recovery
+
+- No voice: check microphone permission, end the call, and call again. Use dashboard
+  Start task for a clearly disclosed no-voice fallback.
+- Helper unavailable: check the server log and Chromium installation; restart once.
+- Model quota/network error: stop, explain the failure, and show the recorded run.
+- Verification/CAPTCHA: stop for human help. Never claim the agent bypassed it.
+- Pending approval: say yes clearly after the question, or use the dashboard Yes
+  button as a disclosed backup. Silence never approves a real action.
+- “Stop” or Stop task halts the task. Hang-up also sends a stop. Reset clears the
+  task and returns the helper browser to its start page.
+
+## Remaining human work before submission
+
+1. Have five people try a short task; record completion time, failures and feedback.
+2. Record the successful browser voice flow and safety check.
+3. Rehearse within three minutes on the venue network.
+4. Fill Devpost with the actual demo scope, architecture, results and limitations.
+5. Submit before the event deadline in the team's implementation plan.
+
+Supermemory is optional after the core demo passes. It is not implemented and
+must not be claimed in the pitch yet. Do not promise arbitrary native-app access:
+this implementation controls a browser on the laptop.

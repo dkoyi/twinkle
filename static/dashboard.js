@@ -125,7 +125,7 @@
   }
 
   function renderAddress() {
-    el.address.textContent = state.address || (state.task ? "Opening…" : "Waiting to start");
+    el.address.textContent = domainOf(state.address) || (state.task ? "Opening…" : "Waiting to start");
   }
 
   /* transcript */
@@ -370,6 +370,9 @@
   el.stop.addEventListener("click", () => demo.active ? demo.stop() : post("/api/stop"));
   el.reset.addEventListener("click", () => demo.active ? demo.stop(true) : post("/api/reset"));
   el.practice.addEventListener("click", () => demo.start(handle));
+  $("safetyDemoBtn").addEventListener("click", () => {
+    if (!demo.active) post('/api/start_task', {goal: 'Open http://localhost:8000/static/safety-demo.html'});
+  });
   $("taskForm").addEventListener("submit", (event) => {
     event.preventDefault();
     if (!demo.active) post("/api/start_task", {goal: $("taskGoal").value});

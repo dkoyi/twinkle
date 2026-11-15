@@ -21,8 +21,16 @@ log = logging.getLogger(__name__)
 
 @router.get('/api/voice/status')
 async def voice_status():
+    media = None
+    browser = getattr(bridge.runner, 'browser', None)
+    if browser is not None and browser.started:
+        try:
+            media = await asyncio.wait_for(browser.media_state(), 1)
+        except Exception:
+            pass
     return {'voice_ready': bool(Settings.from_env().api_key),
-            'helper_connected': bool(bridge.available)}
+            'helper_connected': bool(bridge.available),
+            'screenshot_url': bus.state.screenshot_url, 'media': media}
 
 
 def local_origin(ws):
@@ -131,7 +139,7 @@ async def browser_voice(ws: WebSocket):
         async def forward(event):
             if event.get('call_sid', call_sid) == call_sid and event['type'] in {
                     'voice_ready', 'transcript', 'agent_speaking', 'error', 'needs_approval',
-                    'blocked', 'task_started', 'task_finished', 'step'}:
+                    'blocked', 'task_started', 'task_finished', 'step', 'screenshot', 'approval_result'}:
                 playback.enqueue(event)
         unsubscribe = bus.subscribe(forward)
         workers = []
@@ -172,5 +180,5 @@ async def browser_voice(ws: WebSocket):
                 await bus.publish('call_ended', call_sid=call_sid, duration_s=round(time.monotonic() - started, 2))
                 try:
                     await ws.close()
-                except RuntimeError:
+                except (RuntimeError, WebSocketDisconnect):
                     pass

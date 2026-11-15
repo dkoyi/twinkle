@@ -10,7 +10,7 @@ Set `GEMINI_API_KEY` in `.env`, run the server, then open
 http://localhost:8000/talk on the laptop. Click **Call Agent 1** on the simulated phone and allow the
 microphone. This browser demo uses Gemini directly through our server and does
 not need Twilio or ngrok. Free-tier usage is subject to your Google project's
-quota. Browser control still needs the team's task runner integration.
+quota. The real browser helper opens automatically and checks each action for safety.
 
 See [Maulik's setup guide](docs/MAULIK_SETUP.md) for details. Remote browser voice
 access is disabled until authentication is added; use localhost for this demo.
@@ -65,4 +65,4 @@ uvicorn app.main:app --reload --port 8000
 
 Run the offline checks with `python -m pytest -q`. Real phone calls require
 Twilio credentials and an ngrok address in `.env`; Gemini mode also needs a
-Gemini API key. Browser automation and Shrey's dashboard are separate team work.
+Gemini API key. Dhanush's browser runner and Shrey's dashboard are integrated with the voice demo.
