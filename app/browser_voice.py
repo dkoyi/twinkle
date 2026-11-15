@@ -13,9 +13,16 @@ from app.config import Settings
 from app.events import bus
 from app.sessions import call_lock
 from app.voice_brain import VoiceBrain
+from app.integration import bridge
 
 router = APIRouter()
 log = logging.getLogger(__name__)
+
+
+@router.get('/api/voice/status')
+async def voice_status():
+    return {'voice_ready': bool(Settings.from_env().api_key),
+            'helper_connected': bool(bridge.available)}
 
 
 def local_origin(ws):
@@ -129,7 +136,9 @@ async def browser_voice(ws: WebSocket):
         unsubscribe = bus.subscribe(forward)
         workers = []
         try:
-            await bus.publish('call_started', call_sid=call_sid, **{'from': '', 'transport': 'browser'})
+            await bus.publish('call_started', call_sid=call_sid,
+                              **{'from': '', 'transport': 'browser',
+                                 'agent_id': 'agent-1', 'agent_name': 'Agent 1'})
             brain = VoiceBrain(settings, bus, playback, call_sid, decode_audio=lambda data: data)
             workers = [asyncio.create_task(playback.run()),
                        asyncio.create_task(receive_audio(ws, incoming, playback, call_sid)),

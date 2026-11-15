@@ -7,6 +7,11 @@ Dhaush's runner registration described below. No browser actions are simulated a
 
 ## Free browser demo (recommended for the hackathon)
 
+The phone-style browser demo calls “Agent 1” through our existing Gemini voice
+connection. It shows a real connection timer, mute and hang-up controls, live
+transcripts, and the laptop helper’s actual availability. The page clearly labels
+the phone as simulated: it does not dial a telephone number.
+
 The browser demo needs only GEMINI_API_KEY in .env and the running Python server.
 It does not use Twilio or ngrok, and ignores VOICE_MODE (which only controls the
 phone transport). Gemini usage is subject to the project's free-tier availability
@@ -14,9 +19,9 @@ and quotas; the application does not enable billing or upgrade any account.
 
 1. Start `uvicorn app.main:app --reload --port 8000` in the project virtual environment.
 2. Open http://localhost:8000/talk in Safari, Chrome, or another browser with microphone support.
-3. Click **Start talking**, then allow microphone access for localhost.
+3. Click **Call Agent 1** on the simulated phone, then allow microphone access for localhost.
 4. Wait for TechTwin's greeting. Say hello, then talk over its reply to test interruption.
-5. Use **Stop the computer** to dispatch an immediate stop, or **End conversation**
+5. Use **Stop task** to dispatch an immediate stop, or **End call**
    to disconnect, release the microphone, and stop any computer task.
 
 Both sides' transcripts appear on the page and the shared event bus. The Gemini
@@ -30,7 +35,7 @@ before it can safely control the shared computer. Headphones can help if the
 laptop's speakers cause echo. A page refresh or closed tab ends the session.
 The computer helper must still be connected by Dhaush for actual browser actions.
 
-Checks completed: 41 automated tests, a successful Live session using the local
+Checks completed: 42 automated Python tests and 3 browser-call lifecycle checks, a successful Live session using the local
 key, and a real `/ws/voice` session that received Gemini greeting audio,
 transcripts, and an end-of-audio marker. Actual microphone/speaker interaction
 still needs the user's hardware check.
@@ -187,3 +192,5 @@ Reference docs checked during implementation:
 - Next gate: initialize and attach the real TaskRunner, then check an approved
   YouTube task, a payment/password block and a stop within one second. Only after
   those pass should the team start Supermemory.
+
+Phone UI lifecycle checks (no microphone recording): `node --test tests/voice/browser_ui.test.cjs`.

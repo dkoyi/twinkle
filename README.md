@@ -7,7 +7,7 @@ Built at sunhacks 2026 (ASU).
 ## Free voice demo
 
 Set `GEMINI_API_KEY` in `.env`, run the server, then open
-http://localhost:8000/talk on the laptop. Click **Start talking** and allow the
+http://localhost:8000/talk on the laptop. Click **Call Agent 1** on the simulated phone and allow the
 microphone. This browser demo uses Gemini directly through our server and does
 not need Twilio or ngrok. Free-tier usage is subject to your Google project's
 quota. Browser control still needs the team's task runner integration.
