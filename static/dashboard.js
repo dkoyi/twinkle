@@ -8,6 +8,13 @@
 (function () {
   "use strict";
 
+  document.getElementById('talkLink').addEventListener('click', event => {
+    if (window.parent !== window) {
+      event.preventDefault();
+      window.parent.postMessage({type: 'techtwin:show-call'}, location.origin);
+    }
+  });
+
   const $ = (id) => document.getElementById(id);
   const el = {
     body: document.body,
@@ -211,24 +218,29 @@
     el.film.scrollLeft = el.film.scrollWidth;
   }
 
-  /* screenshots: preload, then cross-fade so it never flickers */
+  /* Decode the next live frame before swapping; keep the previous one visible. */
   let front = el.shotA, back = el.shotB, shotSeq = 0;
+  let lastShotUrl = null;
   function showShot(url) {
-    if (!url) return;
+    if (!url || url === lastShotUrl) return;
+    lastShotUrl = url;
     const seq = ++shotSeq;
     const probe = new Image();
-    probe.onload = () => {
+    probe.onload = async () => {
       if (seq !== shotSeq) return;
       back.src = url;
+      try { await back.decode(); } catch { return; }
+      if (seq !== shotSeq) return;
       back.classList.add("on");
       front.classList.remove("on");
       [front, back] = [back, front];
       el.empty.classList.add("hide");
     };
-    probe.onerror = () => {};
+    probe.onerror = () => { if (seq === shotSeq) lastShotUrl = null; };
     probe.src = url;
   }
   function clearShot() {
+    lastShotUrl = null;
     shotSeq++;
     el.shotA.classList.remove("on"); el.shotB.classList.remove("on");
     el.empty.classList.remove("hide");

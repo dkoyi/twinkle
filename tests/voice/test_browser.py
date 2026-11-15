@@ -28,7 +28,7 @@ def test_demo_status_exposes_availability_without_credentials(client, monkeypatc
     from app.integration import bridge
     monkeypatch.setattr(bridge, 'runner', None)
     response = client.get('/api/voice/status')
-    assert response.json() == {'voice_ready': True, 'helper_connected': False, 'screenshot_url': None, 'media':None}
+    assert response.json() == {'voice_ready': True, 'helper_connected': False, 'screenshot_url': None, 'media':None, 'active_call':None}
     assert 'fake-server-key' not in response.text
 
 
@@ -89,3 +89,35 @@ def test_stop_button_clears_speech_and_dispatches_stop(client, monkeypatch):
         with pytest.raises(WebSocketDisconnect):
             while True: ws.receive_json()
     assert sum(e['type'] == 'voice_command' and e['name'] == 'stop_task' for e in bus.history) == 2
+
+
+def test_other_page_can_end_active_browser_call_and_release_ownership(client, monkeypatch):
+    from app.sessions import call_lock
+    class FakeBrain:
+        def __init__(self, settings, events, playback, call_sid, **kwargs):
+            self.events, self.sid = events, call_sid
+        async def run(self, incoming):
+            await self.events.publish('voice_ready', call_sid=self.sid)
+            await asyncio.Future()
+    monkeypatch.setattr(browser_voice, 'VoiceBrain', FakeBrain)
+    with client.websocket_connect('/ws/voice', headers={'origin':'http://localhost'}) as ws:
+        sid=ws.receive_json()['call_sid']
+        assert client.get('/api/voice/status').json()['active_call']['call_sid'] == sid
+        assert client.post('/api/voice/end', json={'call_sid':sid}, headers={'origin':'http://localhost'}).json()['ok']
+        with pytest.raises(WebSocketDisconnect):
+            while True: ws.receive_json()
+    assert not call_lock.locked()
+    assert client.get('/api/voice/status').json()['active_call'] is None
+    # A stale page cannot terminate a different, newer call.
+    with client.websocket_connect('/ws/voice', headers={'origin':'http://localhost'}) as ws:
+        newer=ws.receive_json()['call_sid']
+        assert newer != sid
+        assert client.post('/api/voice/end', json={'call_sid':sid}, headers={'origin':'http://localhost'}).json()['ok']
+        assert client.get('/api/voice/status').json()['active_call']['call_sid'] == newer
+        ws.send_json({'type':'end'})
+        with pytest.raises(WebSocketDisconnect):
+            while True: ws.receive_json()
+
+
+def test_remote_page_cannot_end_local_call(client):
+    assert client.post('/api/voice/end',json={'call_sid':'any'},headers={'origin':'https://untrusted.example'}).status_code==403

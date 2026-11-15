@@ -167,3 +167,89 @@ def test_a_bad_action_raises_a_friendly_error_not_a_crash(monkeypatch):
                 await b.execute(Action("unknown", name="do_a_barrel_roll"))
 
     run(go())
+
+
+def test_start_recovers_after_helper_browser_is_closed(monkeypatch):
+    async def go():
+        async with browser(monkeypatch) as b:
+            await b._browser.close()
+            assert not b.started
+            await b.start()
+            assert b.started
+            assert (await b.screenshot_png()).startswith(b'\x89PNG')
+    run(go())
+
+
+def test_start_recovers_after_last_tab_is_closed(monkeypatch):
+    async def go():
+        async with browser(monkeypatch) as b:
+            await b.page.close()
+            assert not b.started
+            await b.start()
+            assert b.started
+            assert (await b.screenshot_png()).startswith(b'\x89PNG')
+    run(go())
+
+
+def test_repeated_preview_capture_keeps_one_browser_and_one_tab(monkeypatch):
+    async def go():
+        async with browser(monkeypatch) as b:
+            original = b._browser
+            await b.goto(page_url('<h1>Stable helper</h1>'))
+            for _ in range(5):
+                png, jpg = await asyncio.gather(b.screenshot_png(), b.screenshot_jpeg())
+                assert png.startswith(b'\x89PNG') and jpg.startswith(b'\xff\xd8')
+                assert b._browser is original and b.started
+                assert len(b._context.pages) == 1
+    run(go())
+
+
+def test_new_helper_tab_replaces_previous_tab(monkeypatch):
+    async def go():
+        async with browser(monkeypatch) as b:
+            previous = b.page
+            new = await b._context.new_page()
+            for _ in range(50):
+                if previous.is_closed():
+                    break
+                await asyncio.sleep(.01)
+            assert previous.is_closed()
+            assert b.page is new
+            assert len(b._context.pages) == 1
+    run(go())
+
+
+def test_live_preview_uses_streamed_frames_without_repeated_screenshots_or_resizes(monkeypatch):
+    async def go():
+        async with browser(monkeypatch) as b:
+            await b.goto(page_url('<h1>Preview A</h1>'))
+            first = await b.screenshot_jpeg()
+            assert first.startswith(b'\xff\xd8')
+            session = b._capture_session
+            send = session.send
+            commands = []
+            async def observe(method, params=None):
+                commands.append(method)
+                return await send(method, params)
+            monkeypatch.setattr(session, 'send', observe)
+            async def no_playwright_capture(*args, **kwargs):
+                pytest.fail('Preview must not call page.screenshot')
+            monkeypatch.setattr(b.page, 'screenshot', no_playwright_capture)
+            await b.page.evaluate('''() => {
+                window.previewResizes = 0;
+                window.addEventListener('resize', () => window.previewResizes++);
+                document.body.style.background = 'rgb(10, 80, 150)';
+                document.querySelector('h1').textContent = 'Preview B';
+            }''')
+            for _ in range(50):
+                latest = await b.screenshot_jpeg()
+                if latest != first:
+                    break
+                await asyncio.sleep(.05)
+            assert latest != first, 'Stream should deliver the changed page'
+            for _ in range(10):
+                assert await b.screenshot_jpeg() == latest
+            assert 'Page.captureScreenshot' not in commands
+            assert not any('Emulation.' in method for method in commands)
+            assert await b.page.evaluate('window.previewResizes') == 0
+    run(go())

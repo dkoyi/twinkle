@@ -38,10 +38,10 @@ async def lifespan(app):
                     await browser.start()
                     bridge.attach(runner)
                     await runner._show('preview', 0)
-                    # Keep the dashboard live after the last agent action too;
-                    # videos and loading pages continue changing between steps.
-                    while browser.started:
-                        await asyncio.sleep(1)
+                    # Read the latest streamed frame, including after a task
+                    # ends. These reads never trigger browser screenshots.
+                    while True:
+                        await asyncio.sleep(2)
                         try:
                             await runner._show(runner.task_id or 'preview', runner._steps)
                         except Exception:
@@ -86,7 +86,7 @@ async def root():
 
 @app.get("/talk")
 async def talk():
-    return FileResponse(VOICE_DEMO / "index.html")
+    return FileResponse(VOICE_DEMO / "index.html", headers={'Cache-Control': 'no-store'})
 
 
 def snapshot():
@@ -97,7 +97,7 @@ def snapshot():
 async def dashboard():
     path = STATIC / "dashboard.html"
     if path.exists():
-        return FileResponse(path)
+        return FileResponse(path, headers={'Cache-Control': 'no-store'})
     return {"message": "The phone backend is ready. Shrey's dashboard will appear here when added."}
 
 

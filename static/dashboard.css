@@ -174,7 +174,7 @@ body[data-state="working"] .window { animation: aura-breathe 3.2s ease-in-out in
   width: 100%; height: 100%;
   object-fit: contain; object-position: top center;
   opacity: 0;
-  transition: opacity 0.45s ease;
+  transition: none;
   background: #fff;
 }
 .shot.on { opacity: 1; }

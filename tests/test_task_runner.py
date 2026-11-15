@@ -407,3 +407,27 @@ def test_multiple_calls_in_one_turn_each_get_a_result():
     browser, sp = run(go())
     assert len(browser.executed) == 2 and len(sp.seen[0]) == 2
     assert all(isinstance(r, ActionResult) for r in sp.seen[0])
+
+
+def test_provider_stays_open_through_approval_and_closes_after_task():
+    class Client(ScriptedProvider):
+        closed = False
+
+        async def close(self):
+            self.closed = True
+
+        async def respond(self, results):
+            assert not self.closed
+            return await super().respond(results)
+
+    async def go():
+        client = Client([Proposal([click()]), Proposal(text='Done.')])
+        runner, browser, bus, events, _ = make([], provider=client)
+        browser.page.element_probe = {'text': 'Join Meeting', 'form': '', 'tag': 'button'}
+        await runner.start('join the meeting')
+        await until(lambda: bus.state.pending_approval is not None)
+        await runner.confirm()
+        await drain(runner)
+        assert finished(events)['outcome'] == 'done'
+        assert client.closed
+    run(go())

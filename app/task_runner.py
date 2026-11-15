@@ -17,6 +17,7 @@ Per step:  screenshot -> model proposes -> safety.check -> (ask the person) -> a
 from __future__ import annotations
 
 import asyncio
+import logging
 import re
 import time
 from typing import Optional
@@ -29,6 +30,8 @@ from app.browser import Browser, BrowserError
 from app.computer_use import ActionResult, ProviderError, make_provider
 from app.events import EventBus, bus as default_bus
 from app.settings import get_settings
+
+log = logging.getLogger(__name__)
 
 
 class TaskBusy(Exception):
@@ -133,6 +136,12 @@ class TaskRunner:
         if task and not task.done():
             task.cancel()
             await asyncio.wait({task}, timeout=1.0)
+        pause = getattr(self.browser, 'pause_media', None)
+        if pause:
+            try:
+                await asyncio.wait_for(pause(), .5)
+            except Exception:
+                pass
 
     async def describe(self) -> str:
         if not self.browser.started:
@@ -179,13 +188,6 @@ class TaskRunner:
                 await self.bus.publish("approval_result", task_id=self.task_id, approved=False, by="timeout")
             return False
         finally:
-            close = getattr(self._provider, 'close', None)
-            if close:
-                try:
-                    await close()
-                except Exception:
-                    pass
-            self._provider = None
             if not fut.done():
                 fut.cancel()  # we were stopped while waiting
             self._approval = None
@@ -205,10 +207,21 @@ class TaskRunner:
         except ProviderError as exc:
             await self.bus.publish("error", where="model", message=str(exc))
             outcome, summary = "failed", "The computer helper is unavailable. Please ask a family member or try again shortly."
+        except BrowserError as exc:
+            log.warning("Browser unavailable for task %s: %s", task_id, exc)
+            outcome, summary = "failed", "I couldn't open my helper browser. Please restart the laptop helper."
         except Exception:  # never let one task take the server down
+            log.exception("Computer task failed: %s", task_id)
             await self.bus.publish("error", where="task_runner", message='The computer helper had a problem and stopped safely.')
             outcome, summary = "failed", "Something unexpected happened, so I stopped."
         finally:
+            close = getattr(self._provider, 'close', None)
+            if close:
+                try:
+                    await close()
+                except Exception:
+                    log.warning("Could not close computer model client")
+            self._provider = None
             self._approval = None
             self._pending = None
             await self.bus.publish("task_finished", task_id=task_id, outcome=outcome, summary=summary,
@@ -216,6 +229,8 @@ class TaskRunner:
 
     async def _loop(self, goal: str, task_id: str) -> tuple[str, str]:
         s = get_settings()
+        if not self.browser.started:
+            await self.browser.start()
         provider = self.provider_factory()
         self._provider = provider
         png = await self.browser.screenshot_png()
@@ -293,6 +308,8 @@ class TaskRunner:
         except BrowserError:
             return
         url = screenshots.set_latest(jpeg)
+        if url == self.bus.state.screenshot_url and self.browser.url == self.bus.state.page_url:
+            return
         await self.bus.publish("screenshot", task_id=task_id, n=n, url=url, page_url=self.browser.url)
 
 

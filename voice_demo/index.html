@@ -3,11 +3,12 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>TechTwin · Call Agent 1</title>
-<link rel="stylesheet" href="/voice-demo/style.css">
-<script src="/voice-demo/talk.js" defer></script>
+<link rel="stylesheet" href="/voice-demo/style.css?v=20261115-lifecycle2">
+<script src="/voice-demo/talk.js?v=20261115-stream1" defer></script>
 </head>
 <body data-phase="idle">
-<header><a class="brand" href="/talk"><span class="brand-icon" aria-hidden="true">tt</span>TechTwin</a><span class="demo-badge"><i></i>Browser phone demo</span><a class="dashboard-link" href="/dashboard" target="_blank" rel="noopener">Open dashboard <span aria-hidden="true">↗</span></a></header>
+<header><a id="phoneLink" class="brand" href="#call"><span class="brand-icon" aria-hidden="true">tt</span>TechTwin</a><span class="demo-badge"><i></i>Browser phone demo</span><a id="dashboardLink" class="dashboard-link" href="#dashboard">Open dashboard</a></header>
+<section id="dashboardView" class="dashboard-view" hidden aria-label="Live dashboard"><div class="dashboard-toolbar"><button id="backToCall" type="button">Back to call</button><button id="dashboardEnd" type="button" class="dashboard-end" hidden>End call</button></div><iframe id="dashboardFrame" title="TechTwin live dashboard"></iframe></section>
 <main>
 <section class="intro"><p class="eyebrow">A familiar call. A helping hand.</p><h1>A little help is<br>one call away.</h1><p>Call Agent 1. Say what you need.<br>Take the next step together.</p></section>
 <section class="demo-layout" aria-label="TechTwin phone demonstration">

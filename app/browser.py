@@ -6,6 +6,7 @@ The window is never hidden: judges watch it move.
 from __future__ import annotations
 
 import asyncio
+import base64
 import sys
 import os
 from pathlib import Path
@@ -30,11 +31,23 @@ class Browser:
         self._context: Optional[BrowserContext] = None
         self._page: Optional[Page] = None
         self.recordings: list[str] = []
+        self._screenshot_lock = asyncio.Lock()
+        self._capture_session = None
+        self._capture_page = None
+        self._preview_jpeg = None
+        self._frame_ready = asyncio.Event()
 
     # ---------- lifecycle ----------
     async def start(self) -> None:
         if self._context:
-            return
+            if self._browser and self._browser.is_connected():
+                if self._page is None or self._page.is_closed():
+                    self._page = await self._context.new_page()
+                    await self.go_start()
+                return
+            # Closing the helper window disconnects Chromium but leaves Python
+            # handles behind. Dispose those before launching a fresh helper.
+            await self.stop()
         s = get_settings()
         args = ["--window-position=0,0"]
         if s.fake_media:
@@ -60,12 +73,13 @@ class Browser:
 
     async def stop(self) -> None:
         try:
-            if self._context:
+            await self._stop_capture()
+            if self._context and self._browser and self._browser.is_connected():
                 videos = [page.video for page in self._context.pages if page.video]
                 await self._context.close()
                 for video in videos:
                     self.recordings.append(str(await video.path()))
-            if self._browser:
+            if self._browser and self._browser.is_connected():
                 await self._browser.close()
             if self._pw:
                 await self._pw.stop()
@@ -74,7 +88,8 @@ class Browser:
 
     @property
     def started(self) -> bool:
-        return self._context is not None
+        return bool(self._context and self._browser and self._browser.is_connected()
+                    and self._page and not self._page.is_closed())
 
     # ---------- pages / tabs ----------
     def _watch(self, page: Page) -> None:
@@ -83,9 +98,18 @@ class Browser:
         page.on("close", lambda _p: self._on_close(_p))
 
     def _on_new_page(self, page: Page) -> None:
-        """A link opened a new tab: follow it, the way a person would."""
+        """Follow a newly opened link, keeping only one helper tab."""
+        previous = self._page
         self._watch(page)
         self._page = page
+        if previous and previous is not page and not previous.is_closed():
+            asyncio.create_task(self._close_previous(previous))
+
+    async def _close_previous(self, page: Page) -> None:
+        try:
+            await page.close()
+        except Exception:
+            pass
 
     def _on_close(self, page: Page) -> None:
         if self._page is page and self._context:
@@ -106,11 +130,77 @@ class Browser:
             return ""
 
     # ---------- screenshots ----------
+    async def _stop_capture(self) -> None:
+        session = self._capture_session
+        self._capture_session = self._capture_page = None
+        self._preview_jpeg = None
+        self._frame_ready.clear()
+        if session:
+            try:
+                await session.detach()
+            except Exception:
+                pass
+
+    async def _ensure_capture(self):
+        page = self.page
+        if self._capture_page is page and self._capture_session:
+            return self._capture_session
+        await self._stop_capture()
+        session = await self._context.new_cdp_session(page)
+        self._capture_session, self._capture_page = session, page
+
+        async def frame(event):
+            if session is not self._capture_session:
+                return
+            self._preview_jpeg = base64.b64decode(event['data'])
+            self._frame_ready.set()
+            try:
+                # Chrome permits only a few unacknowledged frames. Delay the
+                # acknowledgment to bound preview work even on playing video.
+                await asyncio.sleep(.2)
+                await session.send('Page.screencastFrameAck', {'sessionId': event['sessionId']})
+            except Exception:
+                pass  # The tab may have closed while a frame was in flight.
+
+        session.on('Page.screencastFrame', frame)
+        try:
+            await session.send('Page.startScreencast', {
+                'format': 'jpeg', 'quality': 70, 'maxWidth': get_settings().viewport_w,
+                'maxHeight': get_settings().viewport_h, 'everyNthFrame': 1,
+            })
+        except Exception:
+            await self._stop_capture()
+            raise
+        return session
+
     async def screenshot_png(self) -> bytes:
-        return await self.page.screenshot(type="png")
+        async with self._screenshot_lock:
+            session = await self._ensure_capture()
+            try:
+                await asyncio.wait_for(self._frame_ready.wait(), 3)
+            except asyncio.TimeoutError:
+                raise BrowserError('Waiting for the browser to finish drawing.') from None
+            # The model needs a fresh still for each decision. Capture directly
+            # from the compositor without Playwright's screenshot preparation
+            # (which temporarily changes page/viewport state).
+            result = await asyncio.wait_for(session.send('Page.captureScreenshot', {
+                'format': 'png', 'fromSurface': True, 'captureBeyondViewport': False,
+            }), 5)
+            return base64.b64decode(result['data'])
 
     async def screenshot_jpeg(self, quality: int = 70) -> bytes:
-        return await self.page.screenshot(type="jpeg", quality=quality, timeout=5000)
+        async with self._screenshot_lock:
+            await self._ensure_capture()
+            try:
+                await asyncio.wait_for(self._frame_ready.wait(), 3)
+            except asyncio.TimeoutError:
+                raise BrowserError('Waiting for the next live browser frame.') from None
+            # Preview reads never trigger a screenshot, resize or focus change.
+            return self._preview_jpeg
+
+    async def pause_media(self) -> None:
+        if self.started:
+            await self.page.evaluate("() => document.querySelectorAll('video,audio').forEach(media => media.pause())")
 
     async def media_state(self) -> dict:
         return await self.page.evaluate('''() => {

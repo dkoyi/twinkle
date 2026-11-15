@@ -13,8 +13,9 @@ class _Latest:
 
 def set_latest(jpeg: bytes) -> str:
     """Store the newest screenshot; returns the URL to put in the `screenshot` event."""
-    _Latest.jpeg = jpeg
-    _Latest.n += 1
+    if jpeg != _Latest.jpeg:
+        _Latest.jpeg = jpeg
+        _Latest.n += 1
     return f"/api/screenshot?v={_Latest.n}"
 
 

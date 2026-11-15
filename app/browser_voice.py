@@ -8,7 +8,7 @@ from urllib.parse import urlsplit
 from uuid import uuid4
 
 import anyio
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Request, HTTPException
 from app.config import Settings
 from app.events import bus
 from app.sessions import call_lock
@@ -17,6 +17,7 @@ from app.integration import bridge
 
 router = APIRouter()
 log = logging.getLogger(__name__)
+browser_calls = {}
 
 
 @router.get('/api/voice/status')
@@ -29,8 +30,25 @@ async def voice_status():
         except Exception:
             pass
     return {'voice_ready': bool(Settings.from_env().api_key),
-            'helper_connected': bool(bridge.available),
-            'screenshot_url': bus.state.screenshot_url, 'media': media}
+            'helper_connected': bool(bridge.available and (browser is None or browser.started)),
+            'screenshot_url': bus.state.screenshot_url, 'media': media,
+            'active_call': next(({'call_sid': sid, 'started_at': call['started_at']}
+                                 for sid, call in browser_calls.items()), None)}
+
+
+@router.post('/api/voice/end')
+async def end_browser_call(request: Request):
+    if not local_origin(request):
+        raise HTTPException(403, 'Use this control from the local TechTwin website.')
+    payload = await request.json()
+    call = browser_calls.get(payload.get('call_sid'))
+    if call is not None:
+        call['end'].set()
+        try:
+            await asyncio.wait_for(asyncio.shield(call['closed']), 3)
+        except asyncio.TimeoutError:
+            raise HTTPException(503, 'The call is still ending. Please try again.')
+    return {'ok': True}
 
 
 def local_origin(ws):
@@ -134,6 +152,9 @@ async def browser_voice(ws: WebSocket):
     async with call_lock:
         call_sid = 'browser-' + uuid4().hex
         started = time.monotonic()
+        call = {'end': asyncio.Event(), 'closed': asyncio.get_running_loop().create_future(),
+                'started_at': time.time()}
+        browser_calls[call_sid] = call
         playback = BrowserPlayback(ws, call_sid)
         incoming = asyncio.Queue(maxsize=250)
         async def forward(event):
@@ -148,7 +169,8 @@ async def browser_voice(ws: WebSocket):
                               **{'from': '', 'transport': 'browser',
                                  'agent_id': 'agent-1', 'agent_name': 'Agent 1'})
             brain = VoiceBrain(settings, bus, playback, call_sid, decode_audio=lambda data: data)
-            workers = [asyncio.create_task(playback.run()),
+            workers = [asyncio.create_task(call['end'].wait()),
+                       asyncio.create_task(playback.run()),
                        asyncio.create_task(receive_audio(ws, incoming, playback, call_sid)),
                        asyncio.create_task(brain.run(incoming))]
             async with asyncio.timeout(600):
@@ -175,10 +197,15 @@ async def browser_voice(ws: WebSocket):
                 for worker in workers:
                     worker.cancel()
                 await asyncio.gather(*workers, return_exceptions=True)
-                await bus.publish('voice_command', request_id=None, name='stop_task', arguments={}, call_sid=call_sid)
+                # Wait for cancellation before releasing ownership to another
+                # call. A queued stop must never cancel the next caller's task.
+                await bus.command('stop_task', call_sid=call_sid, timeout=2)
                 await playback.status(False)
                 await bus.publish('call_ended', call_sid=call_sid, duration_s=round(time.monotonic() - started, 2))
                 try:
                     await ws.close()
                 except (RuntimeError, WebSocketDisconnect):
                     pass
+                browser_calls.pop(call_sid, None)
+                if not call['closed'].done():
+                    call['closed'].set_result(True)

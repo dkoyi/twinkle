@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/dashboard.css">
+  <link rel="stylesheet" href="/static/dashboard.css?v=20261115-stream1">
 </head>
 <body data-state="idle">
 
@@ -25,7 +25,7 @@
     </div>
 
     <div class="tools">
-      <a class="tool" href="/talk" target="_blank" rel="noopener">Talk to TechTwin</a>
+      <a class="tool" id="talkLink" href="/talk">Talk to TechTwin</a>
       <span class="link-state" id="linkState" hidden>Reconnecting&hellip;</span>
       <button class="tool" id="practiceBtn" type="button" hidden>Play a practice run</button>
       <button class="tool" id="safetyDemoBtn" type="button">Show safety check</button>
@@ -97,6 +97,6 @@
   </main>
 
   <script src="/static/demo.js"></script>
-  <script src="/static/dashboard.js"></script>
+  <script src="/static/dashboard.js?v=20261115-stream1"></script>
 </body>
 </html>

@@ -6,7 +6,7 @@ const vm = require('node:vm');
 const fs = require('node:fs');
 const path = require('node:path');
 
-function setup(getMicrophone) {
+function setup(getMicrophone, serverStatus = {}) {
   const elements = new Map();
   class Element {
     constructor() {
@@ -16,6 +16,7 @@ function setup(getMicrophone) {
     }
     addEventListener(type, fn) { this.listeners[type] = fn; }
     setAttribute(name, value) { this.attributes[name] = value; }
+    getAttribute(name) { return this.attributes[name] || null; }
     querySelector() { return this.span; }
     append(...children) { this.children.push(...children); this.lastChild = children.at(-1); }
     replaceChildren() { this.children = []; }
@@ -49,19 +50,20 @@ function setup(getMicrophone) {
     send(data){this.sent.push(data);}
     close(){this.readyState=3;this.onclose?.();}
   }
+  const windowEvents = {}, requests = [];
   const sandbox = {
-    document:{getElementById:element,createElement:()=>new Element(),body:new Element()},
+    document:{getElementById:element,querySelector:()=>element('main'),createElement:()=>new Element(),body:new Element()},
     navigator:{mediaDevices:{getUserMedia:()=>getMicrophone ? getMicrophone(media) : Promise.resolve(media)}},
     AudioContext,AudioWorkletNode,WebSocket,Date,ArrayBuffer,Uint8Array,DataView,
-    location:{protocol:'http:',host:'localhost:8000'},
-    window:{addEventListener(){}},
-    fetch:async()=>({ok:true,json:async()=>({voice_ready:true,helper_connected:false})}),
+    location:{protocol:'http:',host:'localhost:8000',origin:'http://localhost:8000',hash:''},
+    window:{addEventListener(type,fn){windowEvents[type]=fn;}},
+    fetch:async(url,options)=>{requests.push({url,options});return {ok:true,json:async()=>({voice_ready:true,helper_connected:false,...serverStatus})};},
     setInterval:fn=>{const id=++timerId;timers.set(id,fn);return id;},
     clearInterval:id=>timers.delete(id),
     atob:text=>Buffer.from(text,'base64').toString('binary')
   };
   vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../../voice_demo/talk.js'),'utf8'),sandbox);
-  return {element,tracks,contexts,sockets,timers,sandbox};
+  return {element,tracks,contexts,sockets,timers,sandbox,windowEvents,requests,serverStatus};
 }
 
 const flush = () => new Promise(resolve => setImmediate(resolve));
@@ -109,4 +111,56 @@ test('microphone denial leaves a retryable phone screen',async()=>{
   assert.match(app.element('notice').textContent,/Allow the microphone/);
   assert.equal(app.element('start').hidden,false);
   assert.equal(app.sockets.length,0);
+});
+
+test('dashboard round trips preserve the active socket, microphone and hangup controls', async()=>{
+  const app=setup();
+  await app.element('start').listeners.click();
+  const socket=app.sockets[0];
+  socket.onmessage({data:JSON.stringify({type:'voice_ready',call_sid:'browser-owned'})});
+  for(let i=0;i<5;i++) {
+    app.element('dashboardLink').listeners.click({preventDefault(){}});
+    assert.equal(app.element('dashboardView').hidden,false);
+    assert.equal(app.element('dashboardEnd').hidden,false);
+    assert.equal(app.element('dashboardFrame').attributes.src,'/dashboard');
+    app.element('backToCall').listeners.click({preventDefault(){}});
+    assert.equal(app.element('dashboardView').hidden,true);
+    assert.equal(app.element('end').hidden,false);
+    assert.equal(app.element('start').hidden,true);
+  }
+  assert.equal(app.sockets.length,1);
+  assert.equal(app.tracks[0].stopped,false);
+  app.element('dashboardEnd').listeners.click();
+  await flush();
+  assert.equal(socket.readyState,3);
+  assert.equal(app.tracks[0].stopped,true);
+  assert.ok(app.requests.some(r=>r.url==='/api/voice/end' && JSON.parse(r.options.body).call_sid==='browser-owned'));
+});
+
+test('a fresh phone page can end a call owned by an older tab', async()=>{
+  const state={active_call:{call_sid:'browser-older'}};
+  const app=setup(null,state);
+  await flush();
+  assert.equal(app.element('start').hidden,true);
+  assert.equal(app.element('end').hidden,false);
+  await app.element('start').listeners.click();
+  assert.equal(app.sockets.length,0);
+  state.active_call=null;
+  app.element('end').listeners.click();
+  await flush();
+  const request=app.requests.find(r=>r.url==='/api/voice/end');
+  assert.equal(JSON.parse(request.options.body).call_sid,'browser-older');
+  assert.equal(app.element('start').hidden,false);
+});
+
+test('leaving the page ends the socket and microphone instead of stranding a call', async()=>{
+  const app=setup();
+  await app.element('start').listeners.click();
+  const socket=app.sockets[0];
+  app.windowEvents.pagehide();
+  await flush();
+  assert.ok(socket.sent.includes(JSON.stringify({type:'end'})));
+  assert.equal(socket.readyState,3);
+  assert.equal(app.tracks[0].stopped,true);
+  assert.equal(app.contexts[0].state,'closed');
 });

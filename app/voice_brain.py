@@ -8,7 +8,9 @@ from app.audio import twilio_in_to_gemini
 
 SYSTEM = """You are TechTwin, a patient computer helper for older adults on the phone.
 Speak slowly and warmly in short, plain sentences. Do not use technical words.
-Ask what they need; repeat the goal and wait for agreement before start_task.
+If the caller gives a clear request, briefly acknowledge it and call start_task
+immediately. Opening an allowed website or searching does not need an extra yes.
+Ask a clarifying question only when the request is unclear.
 Never claim you did something unless a tool or computer update says it happened.
 Before joins, sends, submits, buys, deletes or downloads, ask the exact approval
 question and wait for a spoken yes before confirm_action. Never infer approval
@@ -22,7 +24,7 @@ briefly narrate the supplied computer update; do not inspect the screen again.
 """
 TOOL_NAMES = {"start_task", "confirm_action", "cancel_action", "describe_screen", "stop_task"}
 TOOLS = [{"function_declarations": [
-    {"name": "start_task", "description": "Start a goal after the caller agrees to it.",
+    {"name": "start_task", "description": "Start the caller's clear requested goal immediately, without asking them to repeat or confirm it.",
      "parameters": {"type": "OBJECT", "properties": {"goal": {"type": "STRING"}}, "required": ["goal"]}},
     *[{"name": name, "description": description, "parameters": {"type": "OBJECT", "properties": {}}}
       for name, description in [
@@ -52,6 +54,10 @@ class VoiceBrain:
         self.last_approval_result = None
 
     async def on_event(self, event):
+        if event['type'] == 'voice_command' and event.get('name') in {'stop_task', 'reset'}:
+            self.stopped = True
+            self.command_epoch += 1
+            self.pending_approval = self.approval_consent = False
         if event.get("call_sid", self.call_sid) != self.call_sid:
             return
         kind = event["type"]
