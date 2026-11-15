@@ -18,7 +18,7 @@ class CallLog:
 
     async def on_event(self, event):
         kind = event['type']
-        if kind not in LOGGED:
+        if kind not in LOGGED or event.get('simulated'):
             return
         if kind == 'call_started':
             self.active_call = event['call_sid']

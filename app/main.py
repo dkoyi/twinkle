@@ -7,14 +7,14 @@ import anyio
 from pathlib import Path
 from dotenv import load_dotenv
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 load_dotenv()
 from app.events import bus
 from app.twilio_stream import router
 from app.browser_voice import router as browser_voice_router
-from app.dashboard import router as dashboard_router, state
+from app.dashboard import router as dashboard_router, state, clear_screenshot
 from app.integration import bridge
 from app.call_log import CallLog
 
@@ -22,8 +22,9 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name
 @asynccontextmanager
 async def lifespan(app):
     state.reset()
+    clear_screenshot()
     call_log = CallLog(Path(__file__).resolve().parent.parent / "logs")
-    unsubscribers = [bus.subscribe(state.on_event), bus.subscribe(call_log.on_event),
+    unsubscribers = [bus.subscribe(call_log.on_event),
                     bus.subscribe(bridge.on_event)]
     try:
         yield
@@ -37,6 +38,9 @@ app = FastAPI(title="TechTwin", lifespan=lifespan)
 app.include_router(router)
 app.include_router(browser_voice_router)
 app.include_router(dashboard_router)
+from app import dev_replay
+if dev_replay.enabled():
+    app.include_router(dev_replay.router)
 VOICE_DEMO = Path(__file__).resolve().parent.parent / "voice_demo"
 app.mount("/voice-demo", StaticFiles(directory=VOICE_DEMO), name="voice-demo")
 STATIC = Path(__file__).resolve().parent.parent / "static"
@@ -64,6 +68,12 @@ async def dashboard():
     if path.exists():
         return FileResponse(path)
     return {"message": "The phone backend is ready. Shrey's dashboard will appear here when added."}
+
+
+@app.get("/family")
+async def family():
+    path = STATIC / "family.html"
+    return FileResponse(path) if path.exists() else RedirectResponse("/dashboard")
 
 
 @app.websocket("/ws/dashboard")

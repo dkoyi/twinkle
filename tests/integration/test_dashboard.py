@@ -46,7 +46,7 @@ def test_missing_runner_is_visible_and_does_not_report_success(client, monkeypat
     response = client.post('/api/start_task', json={'goal':'Find a video'})
     assert response.status_code == 503
     assert 'not connected' in response.json()['detail']
-    assert client.get('/api/screenshot').status_code == 404
+    assert client.get('/api/screenshot').status_code == 204
     assert client.post('/api/reset').json() == {'ok':True}
 
 
@@ -120,3 +120,19 @@ async def test_logs_group_task_events_with_call_without_audio(tmp_path):
     assert len(files) == 1
     events = [json.loads(line) for line in files[0].read_text().splitlines()]
     assert [e['type'] for e in events] == ['call_started','task_finished','call_ended']
+
+
+def test_foundation_hook_and_screenshot_interfaces_remain_compatible(client, monkeypatch):
+    from app import dashboard
+    client, _ = client
+    monkeypatch.setattr(bridge, 'runner', None)
+    seen = []
+    async def start(goal): seen.append(goal); return 'hook-task'
+    async def confirm(by): seen.append(by)
+    monkeypatch.setattr(dashboard.hooks, 'start_task', start)
+    monkeypatch.setattr(dashboard.hooks, 'confirm', confirm)
+    assert client.post('/api/start_task',json={'goal':'Find a recipe'}).json()['task_id'] == 'hook-task'
+    assert client.post('/api/confirm').json()['ok']
+    url = dashboard.set_screenshot(b'jpeg bytes')
+    assert client.get(url).content == b'jpeg bytes'
+    assert seen == ['Find a recipe', 'dashboard']

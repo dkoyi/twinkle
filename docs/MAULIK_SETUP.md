@@ -3,7 +3,7 @@
 Implemented locally: the phone webhook, authenticated audio stream, echo mode,
 Gemini Live conversation, interruptions, live transcripts, and five voice tools.
 The real phone/Gemini checks still need your accounts. Browser actions need
-Dhaush's event listener described below. No browser actions are simulated as successes.
+Dhaush's runner registration described below. No browser actions are simulated as successes.
 
 ## Free browser demo (recommended for the hackathon)
 
@@ -30,7 +30,7 @@ before it can safely control the shared computer. Headphones can help if the
 laptop's speakers cause echo. A page refresh or closed tab ends the session.
 The computer helper must still be connected by Dhaush for actual browser actions.
 
-Checks completed: 29 automated tests, a successful Live session using the local
+Checks completed: 41 automated tests, a successful Live session using the local
 key, and a real `/ws/voice` session that received Gemini greeting audio,
 transcripts, and an end-of-audio marker. Actual microphone/speaker interaction
 still needs the user's hardware check.
@@ -112,6 +112,13 @@ from app.integration import attach_runner
 attach_runner(runner)
 ```
 
+The upstream `dashboard.hooks.start_task/confirm/cancel/stop/reset/describe`
+callback assignments also remain supported, but prefer one attach_runner call
+so voice and dashboard commands reach the same instance. Unset hooks fail with
+a visible error; there are no production fake-success defaults. The original
+`bus.state`, `bus.unsubscribe`, and `dashboard.set_screenshot(jpeg_bytes)` APIs
+are preserved. State is reduced exactly once, before listeners run.
+
 The runner must implement the async API in BACKEND_HANDOFF.md: start(goal),
 confirm(), cancel(), stop(), reset(), describe(). start() schedules the task and
 returns its ID promptly. It must never await the full browser task. stop() must
@@ -143,9 +150,9 @@ keep these local. The directory is gitignored. Run `python scripts/stats.py`
 to summarize real task durations/outcomes. Unsafe actions require human review;
 the script does not manufacture a zero count.
 
-As of the last GitHub check on November 14, origin/main contains the dashboard
-and plan but not app/task_runner.py or app/safety.py, and there are no separate
-branches or open pull requests. Full voice-to-browser testing is waiting for
+As of the last GitHub check on November 14, origin/main at 94eb6e0 contains the
+dashboard, shared foundation, replay and tests, but not app/task_runner.py or
+app/safety.py. There were no separate branches or open pull requests. Full voice-to-browser testing is waiting for
 that implementation. Supermemory remains deferred until this flow works.
 
 ## 5. Run the automated checks
@@ -166,3 +173,17 @@ Reference docs checked during implementation:
 - https://ai.google.dev/gemini-api/docs/live-tools
 - https://www.twilio.com/docs/voice/media-streams/websocket-messages
 - https://www.twilio.com/docs/usage/security
+
+## Integration status and next phase
+
+- Merged origin/main through 94eb6e0 with the tested browser voice demo.
+- Unified the foundation's bus.state snapshot with the voice command bridge.
+- Added dashboard task controls, safe failure when no runner is connected,
+  screenshot compatibility, local call logs and a task statistics command.
+- Retained the dev replay as an opt-in (`DEV_REPLAY=true`); it is disabled by
+  default, restricted to localhost, and cannot start during a real voice session.
+  Simulated replay events are marked and excluded from call logs.
+- Verified a live Gemini greeting reaches `/ws/dashboard` and the call log.
+- Next gate: initialize and attach the real TaskRunner, then check an approved
+  YouTube task, a payment/password block and a stop within one second. Only after
+  those pass should the team start Supermemory.
