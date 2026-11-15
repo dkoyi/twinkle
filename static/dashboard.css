@@ -421,3 +421,83 @@ a.tool { text-decoration: none; display: inline-flex; align-items: center; }
 .task-form > div { display: flex; gap: 8px; }
 .task-form input { flex: 1; min-width: 0; border: 1px solid #bccdcb; border-radius: 10px; padding: 10px 12px; font: inherit; background: var(--paper); color: var(--ink); }
 .control-error { margin: 0; padding: 12px; background: #fff0e7; color: #853e2c; border-radius: 10px; font-size: 17px; }
+
+
+/* ==========================================================================
+   Brand refresh: fonts and tokens come from /static/brand/brand.css.
+   These rules sit last so they win over the earlier look without touching the layout.
+   ========================================================================== */
+:root { --display: var(--font-display); --body: var(--font-body); --twin: var(--teal); --twin-deep: var(--teal-ink); --sun: var(--butter); --sun-bg: var(--butter-fill); --ink-soft: var(--soft); --alarm: var(--red); --alarm-bg: var(--red-tint); }
+body { font-weight: 500; font-size: 20px; }
+.now-line, .sheet-question, .big, .empty p, .talk-empty, .film-empty { letter-spacing: 0; }
+.now-line { line-height: 1.1; font-weight: 800; }
+.sheet-question { line-height: 1.12; }
+.empty p, .talk-empty { font-weight: 700; }
+.chip { font-size: 21px; }
+
+.brand .mark { display: none; }
+.brand .tt-mark { width: 62px; height: 39px; }
+.wordmark { font-size: 34px; letter-spacing: 0; }
+
+/* Buttons: one plain pill style, big enough to hit without care */
+.tool {
+  display: inline-flex; align-items: center; min-height: 50px; padding: 0 22px;
+  border: 0; border-radius: 999px; background: var(--paper); color: var(--ink);
+  font-family: var(--font-body); font-weight: 700; font-size: 19px;
+  box-shadow: inset 0 0 0 3px var(--line), var(--shadow-1);
+  transition: transform .15s var(--ease), box-shadow .2s ease, background-color .2s ease;
+}
+.tool:hover { background: #fff; box-shadow: inset 0 0 0 3px var(--teal), var(--shadow-2); }
+.tool:active { transform: translateY(2px); }
+#stopBtn { color: var(--red-ink); box-shadow: inset 0 0 0 3px var(--red), var(--shadow-1); }
+#stopBtn:hover { background: var(--red-tint); box-shadow: inset 0 0 0 3px var(--red), var(--shadow-2); }
+a.tool { text-decoration: none; background: var(--ink); color: #fff; box-shadow: var(--shadow-1); }
+a.tool:hover { background: #12272f; box-shadow: var(--shadow-2); }
+.link-state { font-size: 18px; font-weight: 700; }
+:focus-visible { outline: 4px solid var(--ink); box-shadow: 0 0 0 8px var(--butter-fill); border-radius: 12px; }
+
+/* Cards and the live window */
+.window { border-radius: 34px; }
+.window-bar { background: var(--peach); }
+.address { font-size: 20px; font-weight: 700; color: var(--ink); }
+.now { border-radius: 34px; background: var(--paper); border-top: 8px solid var(--peach); box-shadow: var(--shadow-2); }
+body[data-state="waiting"] .now { border-top-color: var(--butter); }
+body[data-state="blocked"] .now { border-top-color: var(--red); }
+body[data-state="done"] .now { border-top-color: var(--go); }
+body[data-state="working"] .now { border-top-color: var(--teal); }
+.now-sub { font-size: 23px; font-weight: 700; }
+.talk { border-radius: 34px; background: transparent; }
+.bubble { font-size: clamp(22px, 1.7vw, 30px); }
+.bubble.techtwin { background: var(--teal-ink); }
+.bubble small { font-size: 17px; opacity: .85; }
+.step { border-radius: 28px 28px 28px 14px; }
+.step .what { font-size: 22px; }
+.step .when { font-size: 18px; }
+.sheet { border-radius: 30px; }
+.sheet-title { font-size: 24px; }
+.big { min-height: 76px; font-size: 32px; border-radius: 26px; flex: 1 1 0; }
+.big-yes { box-shadow: var(--shadow-2), inset 0 -6px 0 rgba(0, 0, 0, .25); }
+.big-no { background: var(--paper); box-shadow: inset 0 0 0 4px var(--ink); }
+.sheet-actions { gap: 16px; }
+
+/* The empty screen: Twinkle herself, not a grey icon */
+.empty { background: radial-gradient(600px 360px at 50% 40%, var(--paper), var(--linen)); }
+.empty svg { display: none; }
+.empty-mascot { width: min(300px, 60%); aspect-ratio: 184 / 132; }
+.empty p { font-size: 28px; color: var(--soft); }
+
+/* The task box and its messages */
+.task-form label { font-size: 20px; font-weight: 700; color: var(--soft); }
+.task-form input { min-height: 54px; padding: 0 20px; border: 0; border-radius: 20px; background: var(--paper); font-size: 21px; box-shadow: inset 0 0 0 3px var(--line); }
+.task-form input:focus { outline: none; box-shadow: inset 0 0 0 4px var(--teal), 0 0 0 7px rgba(31, 138, 143, .22); }
+.control-error { font-size: 19px; font-weight: 700; border-radius: 18px; }
+
+/* Room for the floating Twinkle so she never covers a step or a message */
+.steps { padding-right: 190px; }
+.talk .bubbles { padding-bottom: 16px; }
+/* On this page the sentence and the banners already say everything, so she only speaks up
+   when she is asking first or has stopped. */
+body[data-feeds-widget] .ttw[data-state="idle"] .ttw-bubble,
+body[data-feeds-widget] .ttw[data-state="listening"] .ttw-bubble,
+body[data-feeds-widget] .ttw[data-state="working"] .ttw-bubble,
+body[data-feeds-widget] .ttw[data-state="done"] .ttw-bubble { display: none; }

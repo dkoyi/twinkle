@@ -72,7 +72,7 @@ async function helperStatus() {
         $('connection').textContent = 'Call active in another page';
       } else if (hadRemoteCall) {
         phase('ended');
-        status('Call ended', 'Call Agent 1 whenever you need a hand.');
+        status('Call ended', 'Call Twinkle whenever you need a hand.');
         $('connection').textContent = 'Not connected';
       }
     }
@@ -82,7 +82,7 @@ async function helperStatus() {
     if (!state.helper_connected) $('taskDetail').textContent = state.voice_ready
       ? 'Voice is ready. Laptop actions need the computer helper.'
       : 'Add a Gemini key on the server to enable voice.';
-    if (!state.voice_ready && !active) notice('Add your Gemini key on the server before calling Agent 1.', true);
+    if (!state.voice_ready && !active) notice('Add your Gemini key on the server before calling Twinkle.', true);
   } catch {
     $('helperStatus').textContent = 'Helper status unavailable';
   }
@@ -155,7 +155,7 @@ function transcript(event) {
     row = document.createElement('div');
     row.className = `bubble ${event.who}`;
     const label = document.createElement('strong');
-    label.textContent = event.who === 'caller' ? 'You' : 'TechTwin';
+    label.textContent = event.who === 'caller' ? 'You' : 'Twinkle';
     row.append(label, document.createElement('span'));
     $('transcript').append(row);
     bubbles[event.who] = row;
@@ -176,7 +176,7 @@ function onMessage(event) {
       clearInterval(callTimer);
       callTimer = setInterval(() => { $('duration').textContent = duration(); }, 1000);
       $('connection').textContent = 'Call connected';
-      status('Agent 1 is listening', 'Say hello, or tell me what you need help with.');
+      status('Twinkle is listening', 'Say hello, or tell me what you need help with.');
       break;
     case 'audio': playAudio(message); break;
     case 'audio_end': markPlayed(message); break;
@@ -187,7 +187,7 @@ function onMessage(event) {
     case 'transcript': transcript(message); break;
     case 'agent_speaking':
       $('orb').classList.toggle('speaking', message.speaking);
-      status(message.speaking ? 'Agent 1 is speaking' : 'Agent 1 is listening', muted ? 'Your microphone is muted.' : 'You can speak at any time.');
+      status(message.speaking ? 'Twinkle is speaking' : 'Twinkle is listening', muted ? 'Your microphone is muted.' : 'You can speak at any time.');
       break;
     case 'needs_approval': notice(message.question); break;
     case 'blocked': notice(message.reason, true); break;
@@ -240,7 +240,7 @@ async function cleanup() {
   $('orb').classList.remove('active');
   $('connection').textContent = 'Not connected';
   phase(failed ? 'error' : 'ended');
-  if (!failed) status('Call ended', 'Call Agent 1 whenever you need a hand.');
+  if (!failed) status('Call ended', 'Call Twinkle whenever you need a hand.');
 }
 async function end() {
   if (ending) return;
@@ -276,11 +276,11 @@ $('start').addEventListener('click', async () => {
   $('mute').hidden = true;
   $('stop').hidden = true;
   $('orb').classList.add('active');
-  $('connection').textContent = 'Calling Agent 1…';
+  $('connection').textContent = 'Calling Twinkle…';
   $('duration').textContent = 'Connecting…';
   phase('dialing');
   notice('');
-  status('Calling Agent 1…', 'Allow your microphone when your browser asks.');
+  status('Calling Twinkle…', 'Allow your microphone when your browser asks.');
   try {
     if (!navigator.mediaDevices?.getUserMedia) throw new Error('Open this page at http://localhost:8000/talk to use your microphone.');
     // Create/resume directly within the button gesture to enable browser playback.
@@ -326,7 +326,7 @@ $('start').addEventListener('click', async () => {
       socket = null;
       callSid = null;
       if (!failed) { failed = true; notice('The conversation ended. You can start again.', true); }
-      status('Call ended', 'Press Call Agent 1 to try again.');
+      status('Call ended', 'Press Call Twinkle to try again.');
       void cleanup().then(helperStatus);
     };
     $('start').hidden = true;
@@ -335,7 +335,7 @@ $('start').addEventListener('click', async () => {
     $('mute').hidden = false;
     $('orb').classList.add('active');
     heartbeat = setInterval(() => send(JSON.stringify({type: 'ping'})), 10000);
-    status('Calling Agent 1…', 'Connecting your voice to TechTwin.');
+    status('Calling Twinkle…', 'Connecting your voice to TechTwin.');
   } catch (error) {
     if (currentAttempt !== attempt) return;
     failed = true;

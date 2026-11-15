@@ -104,7 +104,7 @@
     }
     if (t && t.finished) return [t.summary || "All done.", "Is there anything else?"];
     if (state.call) return ["I’m listening.", "Say what you’d like help with."];
-    return ["Ready to help.", "Open Talk to TechTwin to start a conversation."];
+    return ["Ready to help.", "Press Call Twinkle to start a conversation."];
   }
   let lastNow = "";
   function renderNow() {
@@ -141,7 +141,7 @@
     li.className = "bubble " + m.who + (m.final ? "" : " partial");
     li.dataset.who = m.who;
     li.innerHTML = "<small></small><span></span>";
-    li.querySelector("small").textContent = m.who === "caller" ? "You" : "TechTwin";
+    li.querySelector("small").textContent = m.who === "caller" ? "You" : "Twinkle";
     li.querySelector("span").textContent = m.text;
     return li;
   }
@@ -280,6 +280,7 @@
 
   function handle(ev) {
     if (!ev || !ev.type) return;
+    document.dispatchEvent(new CustomEvent("techtwin:event", { detail: ev })); // the floating Twinkle follows along
     switch (ev.type) {
       case "snapshot": applySnapshot(ev); return;
 

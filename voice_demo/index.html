@@ -2,39 +2,63 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>TechTwin · Call Agent 1</title>
-<link rel="stylesheet" href="/voice-demo/style.css?v=20261115-lifecycle2">
-<script src="/voice-demo/talk.js?v=20261115-stream1" defer></script>
+<title>TechTwin · Call Twinkle</title>
+<meta name="description" content="Call Twinkle, say what you need, and watch your computer do it, slowly and safely.">
+<link rel="icon" type="image/svg+xml" href="/static/brand/favicon.svg">
+<link rel="preload" href="/static/fonts/Baloo2.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/static/fonts/AtkinsonNext.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/static/brand/brand.css?v=20261115-brand1">
+<link rel="stylesheet" href="/voice-demo/style.css?v=20261115-brand1">
+<script src="/static/brand/twinkle.js?v=20261115-brand1" defer></script>
+<script src="/static/brand/widget.js?v=20261115-brand1" defer></script>
+<script src="/voice-demo/talk.js?v=20261115-brand1" defer></script>
 </head>
 <body data-phase="idle">
-<header><a id="phoneLink" class="brand" href="#call"><span class="brand-icon" aria-hidden="true">tt</span>TechTwin</a><span class="demo-badge"><i></i>Browser phone demo</span><a id="dashboardLink" class="dashboard-link" href="#dashboard">Open dashboard</a></header>
-<section id="dashboardView" class="dashboard-view" hidden aria-label="Live dashboard"><div class="dashboard-toolbar"><button id="backToCall" type="button">Back to call</button><button id="dashboardEnd" type="button" class="dashboard-end" hidden>End call</button></div><iframe id="dashboardFrame" title="TechTwin live dashboard"></iframe></section>
+<header class="site-header">
+<a id="phoneLink" class="tt-brand" href="#call" aria-label="TechTwin, back to the call"><span id="brandMark" class="brand-mark" aria-hidden="true"></span><span class="tt-wordmark">TechTwin</span></a>
+<span class="demo-badge"><i></i>A phone call, in your browser</span>
+<a id="dashboardLink" class="dashboard-link" href="#dashboard">Open dashboard</a>
+</header>
+<section id="dashboardView" class="dashboard-view" hidden aria-label="Live dashboard"><div class="dashboard-toolbar"><button id="backToCall" type="button">Back to the call</button><button id="dashboardEnd" type="button" class="dashboard-end" hidden>End the call</button></div><iframe id="dashboardFrame" title="TechTwin live dashboard"></iframe></section>
 <main>
-<section class="intro"><p class="eyebrow">A familiar call. A helping hand.</p><h1>A little help is<br>one call away.</h1><p>Call Agent 1. Say what you need.<br>Take the next step together.</p></section>
-<section class="demo-layout" aria-label="TechTwin phone demonstration">
+<div class="stage">
 <div class="phone-column">
-<div class="phone" aria-label="Simulated phone calling Agent 1"><div class="phone-top"><span id="clock">TechTwin</span><span class="island" aria-hidden="true"></span><span class="signal" aria-hidden="true">▂▄▆ <span>▰</span></span></div>
+<div class="phone" aria-label="A phone calling Twinkle">
+<div class="phone-top"><span id="clock">TechTwin</span><span class="island" aria-hidden="true"></span><span class="signal" aria-hidden="true">▂▄▆ <span>▰</span></span></div>
 <div class="phone-screen">
-<p class="phone-label">TECHTWIN ASSISTANT</p>
-<div id="orb" class="avatar" aria-hidden="true"><span>tt</span><i></i></div>
-<h2>Agent 1</h2><p class="agent-description">A patient voice for everyday help</p>
+<div id="orb" class="avatar" aria-hidden="true"><span id="phoneTwinkle" class="avatar-rig"></span><i></i></div>
+<h2>Twinkle</h2>
+<p class="agent-description">Your patient helper</p>
 <div class="call-state"><p id="status" role="status" aria-live="polite">Ready to call</p><span id="duration">Voice over your browser</span></div>
 <div class="wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-<div class="phone-actions"><button id="mute" class="round-control" aria-label="Mute microphone" aria-pressed="false" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="13" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8"/></svg><span>Mute</span></button><button id="stop" class="round-control stop-control" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="3"/></svg><span>Stop task</span></button></div>
-<button id="start" class="call-button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3 4 4c-3 5 10 18 15 15l2-3-5-3-2 2c-3-1-5-3-6-6l2-2z"/></svg><span>Call Agent 1</span></button>
+<div class="phone-actions">
+<button id="mute" class="round-control" aria-label="Mute microphone" aria-pressed="false" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="13" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8"/></svg><span>Mute</span></button>
+<button id="stop" class="round-control stop-control" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="3"/></svg><span>Stop task</span></button>
+</div>
+<button id="start" class="call-button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3 4 4c-3 5 10 18 15 15l2-3-5-3-2 2c-3-1-5-3-6-6l2-2z"/></svg><span>Call Twinkle</span></button>
 <button id="end" class="call-button hangup" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 15v-4c5-5 13-5 18 0v4h-5v-3a13 13 0 0 0-8 0v3z"/></svg><span>End call</span></button>
 <p id="hint">Your microphone turns on when you call.</p>
-</div><div class="home-indicator" aria-hidden="true"></div></div>
-<p class="phone-caption"><span class="live-dot"></span>Simulated phone. Live Gemini conversation.</p>
+</div>
+<div class="home-indicator" aria-hidden="true"></div>
+</div>
+<p class="phone-caption"><span class="live-dot"></span>A simulated phone. A live conversation with Twinkle.</p>
 </div>
 <div class="session-column">
-<section class="session-card"><div class="card-header"><div><p class="eyebrow">On grandma’s laptop</p><h2>A little less to figure out.</h2></div><span id="helperStatus" class="helper-status">Checking helper…</span></div>
-<div class="laptop-preview" id="laptopPreview"><img id="laptopShot" alt="Latest view of the laptop’s browser" hidden><div id="laptopEmpty"><svg viewBox="0 0 64 48" aria-hidden="true"><rect x="8" y="4" width="48" height="32" rx="4"/><path d="M2 42h60M25 42h14"/></svg><p id="taskSummary">Your computer’s next steps will appear here.</p><span id="taskDetail">Agent 1 listens while you explain what you need.</span></div></div>
+<section class="intro"><h1>A little help is one call away.</h1><p>Press Call Twinkle and say what you need. Watch your computer do it, one careful step at a time.</p></section>
+<section class="session-card laptop-card"><div class="card-header"><div><h2>On your computer</h2><p class="card-sub">What Twinkle is doing right now</p></div><span id="helperStatus" class="helper-status">Checking the helper…</span></div>
+<div class="laptop-preview" id="laptopPreview"><img id="laptopShot" alt="The latest view of the computer’s browser" hidden><div id="laptopEmpty"><svg viewBox="0 0 64 48" aria-hidden="true"><rect x="8" y="4" width="48" height="32" rx="4"/><path d="M2 42h60M25 42h14"/></svg><p id="taskSummary">Your computer’s next steps will appear here.</p><span id="taskDetail">Twinkle listens while you explain what you need.</span></div></div>
 </section>
-<section class="session-card transcript-panel"><div class="card-header"><div><p class="eyebrow">Every word, right here</p><h2>Our conversation</h2></div><span id="connection" class="connection">Not connected</span></div><div id="notice" role="status" hidden></div><div id="transcript" role="log" aria-live="polite"><p id="empty">“Play the dal recipe in my shortcuts.”<span>Start a call to talk with Agent 1.</span></p></div></section>
+<section class="session-card transcript-panel"><div class="card-header"><div><h2>Our conversation</h2><p class="card-sub">Every word, right here</p></div><span id="connection" class="connection">Not connected</span></div><div id="notice" role="status" hidden></div><div id="transcript" role="log" aria-live="polite"><p id="empty">“Play the dal recipe in my shortcuts.”<span>Press Call Twinkle to start talking.</span></p></div></section>
 </div>
-</section>
+</div>
 <aside class="demo-note"><span class="note-icon" aria-hidden="true">i</span><p><strong>A phone experience, demonstrated in your browser.</strong> The conversation uses live Gemini audio. No telephone call is placed. Connecting a real phone number requires an upgraded Twilio account and a live telephone test.</p></aside>
-<footer><span>Your voice → Gemini → connected laptop helper</span><span>Audio is sent to Google Gemini only during your call.</span></footer>
+<footer><span>Your voice → Gemini → your computer</span><span>Audio is sent to Google Gemini only during your call.</span></footer>
 </main>
+<script>
+// The logo is built from the same mascot file the floating Twinkle uses, so it can never drift.
+window.addEventListener('DOMContentLoaded', function () {
+  var m = document.getElementById('brandMark');
+  if (m && window.TT && TT.markSVG) m.innerHTML = TT.markSVG;
+});
+</script>
 </body></html>

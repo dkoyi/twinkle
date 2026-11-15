@@ -4,20 +4,18 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>TechTwin</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/dashboard.css?v=20261115-stream1">
+  <link rel="icon" type="image/svg+xml" href="/static/brand/favicon.svg">
+  <link rel="preload" href="/static/fonts/Baloo2.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/static/fonts/AtkinsonNext.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/static/brand/brand.css?v=20261115-brand1">
+  <link rel="stylesheet" href="/static/dashboard.css?v=20261115-brand1">
 </head>
-<body data-state="idle">
+<body data-state="idle" data-feeds-widget>
 
   <header class="top">
-    <div class="brand">
-      <svg class="mark" viewBox="0 0 48 32" aria-hidden="true">
-        <circle cx="17" cy="16" r="12" fill="none" stroke="#1F8A8F" stroke-width="5"/>
-        <circle cx="31" cy="16" r="12" fill="none" stroke="#F4B52E" stroke-width="5"/>
-      </svg>
-      <span class="wordmark">TechTwin</span>
+    <div class="brand tt-brand">
+      <span id="brandMark" aria-hidden="true"></span>
+      <span class="wordmark tt-wordmark">TechTwin</span>
     </div>
 
     <div class="chip" id="callChip" role="status" aria-live="polite">
@@ -25,7 +23,7 @@
     </div>
 
     <div class="tools">
-      <a class="tool" id="talkLink" href="/talk">Talk to TechTwin</a>
+      <a class="tool" id="talkLink" href="/talk">Call Twinkle</a>
       <span class="link-state" id="linkState" hidden>Reconnecting&hellip;</span>
       <button class="tool" id="practiceBtn" type="button" hidden>Play a practice run</button>
       <button class="tool" id="safetyDemoBtn" type="button">Show safety check</button>
@@ -47,14 +45,14 @@
           <img class="shot" id="shotB" alt="" draggable="false">
           <span class="ripple" id="ripple" aria-hidden="true"></span>
           <div class="empty" id="screenEmpty">
-            <svg viewBox="0 0 64 48" aria-hidden="true"><rect x="4" y="4" width="56" height="36" rx="5" fill="none" stroke="currentColor" stroke-width="3"/><path d="M22 44h20" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
-            <p>Grandma&rsquo;s screen will appear here as soon as TechTwin starts helping.</p>
+            <div class="empty-mascot" id="emptyMascot" aria-hidden="true"></div>
+            <p>Grandma&rsquo;s screen will appear here as soon as Twinkle starts helping.</p>
           </div>
         </div>
       </div>
 
       <div class="sheet sheet-ask" id="askSheet" role="alertdialog" aria-live="assertive" aria-hidden="true">
-        <p class="sheet-title">TechTwin is asking first</p>
+        <p class="sheet-title">Twinkle is asking first</p>
         <p class="sheet-question" id="askQuestion"></p>
         <div class="sheet-actions">
           <button class="big big-yes" id="yesBtn" type="button">Yes, go ahead</button>
@@ -65,7 +63,7 @@
       <div class="sheet sheet-stop" id="stopSheet" role="alert" aria-hidden="true">
         <svg class="sheet-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M24 4l17 7v12c0 10-7 18-17 21C14 41 7 33 7 23V11z" fill="currentColor"/><path d="M17 24l5 5 9-11" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <div>
-          <p class="sheet-title">TechTwin stopped to keep things safe</p>
+          <p class="sheet-title">Twinkle stopped to keep things safe</p>
           <p class="sheet-question" id="stopReason"></p>
         </div>
       </div>
@@ -80,7 +78,7 @@
       <section class="now" aria-live="polite">
         <div class="voice" id="voice" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
         <p class="now-line" id="nowLine">Ready for a call.</p>
-        <p class="now-sub" id="nowSub">Call the TechTwin number and say what you need.</p>
+        <p class="now-sub" id="nowSub">Call Twinkle and say what you need.</p>
       </section>
 
       <section class="talk" aria-label="The conversation">
@@ -89,14 +87,17 @@
       </section>
     </aside>
 
-    <footer class="steps" aria-label="What TechTwin has done">
+    <footer class="steps" aria-label="What Twinkle has done">
       <ol class="film" id="film"></ol>
-      <p class="film-empty" id="filmEmpty">Each thing TechTwin does will appear here, one after another.</p>
+      <p class="film-empty" id="filmEmpty">Each thing Twinkle does will appear here, one after another.</p>
     </footer>
 
   </main>
 
   <script src="/static/demo.js"></script>
-  <script src="/static/dashboard.js?v=20261115-stream1"></script>
+  <script src="/static/brand/twinkle.js?v=20261115-brand1"></script>
+  <script src="/static/brand/widget.js?v=20261115-brand1"></script>
+  <script>window.addEventListener("DOMContentLoaded",function(){var m=document.getElementById("brandMark");if(m&&window.TT&&TT.markSVG)m.innerHTML=TT.markSVG;});</script>
+  <script src="/static/dashboard.js?v=20261115-brand1"></script>
 </body>
 </html>

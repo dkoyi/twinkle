@@ -72,7 +72,7 @@
   function dal(h) {
     return [
       [300, () => h({ type: "call_started", call_sid: "demo", from: "4821" })],
-      ...say(TWIN, "Hi, I’m TechTwin. What would you like help with on your computer today?", 700),
+      ...say(TWIN, "Hi, I’m Twinkle. What would you like help with on your computer today?", 700),
       [1100, () => {}],
       ...say(CALLER, "My daughter told me about a dal recipe video. Can you play it?", 0),
       ...say(TWIN, "You’d like to watch a dal recipe video on YouTube. Is that right?", 500),
@@ -97,7 +97,7 @@
   function iphone(h) {
     return [
       [300, () => h({ type: "call_started", call_sid: "demo", from: "4821" })],
-      ...say(TWIN, "Hi, I’m TechTwin. What would you like help with today?", 500),
+      ...say(TWIN, "Hi, I’m Twinkle. What would you like help with today?", 500),
       ...say(CALLER, "Buy me the new iPhone.", 0),
       ...say(TWIN, "You’d like to buy a new phone. I’ll take a look, and I’ll check with you first.", 400),
       [400, () => h({ type: "task_started", task_id: "t2", goal: "Buy the new phone" })],
