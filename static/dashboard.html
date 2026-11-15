@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TechTwin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/dashboard.css">
+</head>
+<body data-state="idle">
+
+  <header class="top">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 48 32" aria-hidden="true">
+        <circle cx="17" cy="16" r="12" fill="none" stroke="#1F8A8F" stroke-width="5"/>
+        <circle cx="31" cy="16" r="12" fill="none" stroke="#F4B52E" stroke-width="5"/>
+      </svg>
+      <span class="wordmark">TechTwin</span>
+    </div>
+
+    <div class="chip" id="callChip" role="status" aria-live="polite">
+      <span class="chip-dot"></span><span id="callChipText">Waiting for a call</span>
+    </div>
+
+    <div class="tools">
+      <span class="link-state" id="linkState" hidden>Reconnecting&hellip;</span>
+      <button class="tool" id="practiceBtn" type="button" hidden>Play a practice run</button>
+      <button class="tool" id="stopBtn" type="button">Stop</button>
+      <button class="tool" id="resetBtn" type="button">Start over</button>
+    </div>
+  </header>
+
+  <main class="grid">
+
+    <section class="stage" id="stage" aria-label="Your computer, live">
+      <div class="window">
+        <div class="window-bar">
+          <span class="lights" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span class="address" id="address">Waiting to start</span>
+        </div>
+        <div class="screen" id="screen">
+          <img class="shot" id="shotA" alt="" draggable="false">
+          <img class="shot" id="shotB" alt="" draggable="false">
+          <span class="ripple" id="ripple" aria-hidden="true"></span>
+          <div class="empty" id="screenEmpty">
+            <svg viewBox="0 0 64 48" aria-hidden="true"><rect x="4" y="4" width="56" height="36" rx="5" fill="none" stroke="currentColor" stroke-width="3"/><path d="M22 44h20" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
+            <p>Grandma&rsquo;s screen will appear here as soon as TechTwin starts helping.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="sheet sheet-ask" id="askSheet" role="alertdialog" aria-live="assertive" aria-hidden="true">
+        <p class="sheet-title">TechTwin is asking first</p>
+        <p class="sheet-question" id="askQuestion"></p>
+        <div class="sheet-actions">
+          <button class="big big-yes" id="yesBtn" type="button">Yes, go ahead</button>
+          <button class="big big-no" id="noBtn" type="button">No, don&rsquo;t</button>
+        </div>
+      </div>
+
+      <div class="sheet sheet-stop" id="stopSheet" role="alert" aria-hidden="true">
+        <svg class="sheet-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M24 4l17 7v12c0 10-7 18-17 21C14 41 7 33 7 23V11z" fill="currentColor"/><path d="M17 24l5 5 9-11" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <div>
+          <p class="sheet-title">TechTwin stopped to keep things safe</p>
+          <p class="sheet-question" id="stopReason"></p>
+        </div>
+      </div>
+    </section>
+
+    <aside class="side">
+      <section class="now" aria-live="polite">
+        <div class="voice" id="voice" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+        <p class="now-line" id="nowLine">Ready for a call.</p>
+        <p class="now-sub" id="nowSub">Call the TechTwin number and say what you need.</p>
+      </section>
+
+      <section class="talk" aria-label="The conversation">
+        <ol class="bubbles" id="bubbles"></ol>
+        <p class="talk-empty" id="talkEmpty">The conversation will show up here, word for word.</p>
+      </section>
+    </aside>
+
+    <footer class="steps" aria-label="What TechTwin has done">
+      <ol class="film" id="film"></ol>
+      <p class="film-empty" id="filmEmpty">Each thing TechTwin does will appear here, one after another.</p>
+    </footer>
+
+  </main>
+
+  <script src="/static/demo.js"></script>
+  <script src="/static/dashboard.js"></script>
+</body>
+</html>

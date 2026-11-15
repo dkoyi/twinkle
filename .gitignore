@@ -8,3 +8,6 @@ logs/
 *.zip
 .pytest_cache/
 .ruff_cache/
+
+# Local-only notes (not for GitHub)
+docs/CLAUDE_DESIGN_PROMPT.md
