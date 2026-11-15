@@ -30,7 +30,7 @@ before it can safely control the shared computer. Headphones can help if the
 laptop's speakers cause echo. A page refresh or closed tab ends the session.
 The computer helper must still be connected by Dhaush for actual browser actions.
 
-Checks completed: 23 automated tests, a successful Live session using the local
+Checks completed: 29 automated tests, a successful Live session using the local
 key, and a real `/ws/voice` session that received Gemini greeting audio,
 transcripts, and an end-of-audio marker. Actual microphone/speaker interaction
 still needs the user's hardware check.
@@ -101,66 +101,52 @@ origin also exposes them, so avoid sharing that address beyond your team.
 
 ## 4. Browser integration for Dhaush
 
-The original handoff requires module communication through `app/events.py`.
-Voice never imports `task_runner`. Add a listener during server startup, and
-unsubscribe during shutdown. This is an integration sketch, not installed code:
+The shared command bridge is implemented in `app/integration.py` and subscribed
+by the FastAPI lifespan. Do not add a second voice_command listener.
+After initializing the real TaskRunner at application startup, register it:
 
 ```python
-from app.events import bus
+from app.integration import attach_runner
 
-async def on_voice_command(event):
-    if event['type'] != 'voice_command':
-        return
-    name, args = event['name'], event['arguments']
-    # Methods must return promptly. start() schedules its loop in the background.
-    try:
-        if name == 'start_task':
-            task_id = await runner.start(args['goal'])
-            result = {'ok': True, 'task_id': task_id, 'message': 'Started'}
-        elif name == 'confirm_action':
-            await runner.confirm()
-            result = {'ok': True}
-        elif name == 'cancel_action':
-            await runner.cancel()
-            result = {'ok': True}
-        elif name == 'stop_task':
-            await runner.stop()
-            result = {'ok': True}
-        elif name == 'describe_screen':
-            result = {'ok': True, 'description': await runner.describe()}
-        else:
-            result = {'ok': False, 'message': 'Unknown command'}
-    except Exception:
-        result = {'ok': False, 'message': 'The computer could not do that step.'}
-    if event['request_id'] is not None:
-        await bus.publish('voice_command_result', request_id=event['request_id'], result=result)
-
-unsubscribe = bus.subscribe(on_voice_command)
+# runner = your initialized TaskRunner, with its visible browser ready
+attach_runner(runner)
 ```
 
-New internal events (the dashboard may ignore them):
+The runner must implement the async API in BACKEND_HANDOFF.md: start(goal),
+confirm(), cancel(), stop(), reset(), describe(). start() schedules the task and
+returns its ID promptly. It must never await the full browser task. stop() must
+cancel the browser loop within one second. The bridge cancels in-flight commands
+when a stop arrives, and both dashboard controls and voice use the same event path.
+Expose `latest_screenshot` as JPEG bytes (or a get_screenshot() method returning
+bytes) for `/api/screenshot`. Never publish screenshot bytes on the JSON event bus.
 
-- `voice_command`: `request_id` (string or null), `name`, `arguments`, `call_sid`.
-- `voice_command_result`: matching `request_id`, `result` (JSON object with `ok`).
+Publish the established task events, screenshots, approval questions and results,
+blocks and completion summaries to `bus`. The runner owns the safety checks and
+pending-approval state. It must refuse confirmation when no step is pending and
+refuse a second task while one is running. The bridge does not simulate actions.
 
-A null request ID is an immediate stop notification (stop word or hangup),
-with no reply needed. Keep listeners quick; never await an entire browser task
-inside a listener. Cache screen descriptions; expensive work should be scheduled
-outside event callbacks. Commands without a result time out after two seconds
-with “The computer helper is not connected yet.” A timed-out command must not
-be queued for later execution. There is no browser listener yet.
+The dashboard now serves Shrey's real UI at `/dashboard`, restores its state on
+reconnect, and exposes `/api/start_task`, `/api/confirm`, `/api/cancel`, `/api/stop`,
+`/api/reset` and `/api/screenshot`. Controls are local-only until authentication
+is added. Without a runner, task controls return a visible 503 explanation.
+Reset still clears the dashboard when no runner is connected. `/talk` and the
+dashboard link to each other, so keep both open during the demo.
 
-Publish the handoff's existing `step`, `needs_approval`, `blocked`, and
-`task_finished` events to trigger spoken updates. Completed steps are narrated at
-most every four seconds; scrolls are skipped. Safety checks and tracking pending
-approvals remain the runner's responsibility. Both transcript sides accumulate
-streaming text and mark final bubbles. `agent_speaking` ends on Twilio's playback
-acknowledgment or interruption, rather than when Gemini finishes generating.
+Internal events: voice_command carries request_id (string or null), name,
+arguments and call_sid. voice_command_result carries request_id and a JSON result
+with ok. Null request IDs are stop notifications that need no reply. Voice gets
+a failure if no command result arrives within two seconds.
 
-Shared glue implemented here: `app/main.py`, `app/events.py`, `/api/state`, and
-`/ws/dashboard`. Browser startup, screenshot endpoints, dashboard task buttons,
-and call-log files remain integration work for the team. The event history is
-bounded in memory and is not a durable log.
+Call/task events are recorded under `logs/<date>/<call-or-task-id>.jsonl`.
+Audio is never logged. Transcripts and task goals are recorded for the demo;
+keep these local. The directory is gitignored. Run `python scripts/stats.py`
+to summarize real task durations/outcomes. Unsafe actions require human review;
+the script does not manufacture a zero count.
+
+As of the last GitHub check on November 14, origin/main contains the dashboard
+and plan but not app/task_runner.py or app/safety.py, and there are no separate
+branches or open pull requests. Full voice-to-browser testing is waiting for
+that implementation. Supermemory remains deferred until this flow works.
 
 ## 5. Run the automated checks
 

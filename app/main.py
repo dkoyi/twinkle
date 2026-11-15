@@ -1,6 +1,8 @@
 """Run with: uvicorn app.main:app --reload --port 8000."""
 import asyncio
 import logging
+from contextlib import asynccontextmanager
+import time
 import anyio
 from pathlib import Path
 from dotenv import load_dotenv
@@ -12,11 +14,29 @@ load_dotenv()
 from app.events import bus
 from app.twilio_stream import router
 from app.browser_voice import router as browser_voice_router
+from app.dashboard import router as dashboard_router, state
+from app.integration import bridge
+from app.call_log import CallLog
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
-app = FastAPI(title="TechTwin")
+@asynccontextmanager
+async def lifespan(app):
+    state.reset()
+    call_log = CallLog(Path(__file__).resolve().parent.parent / "logs")
+    unsubscribers = [bus.subscribe(state.on_event), bus.subscribe(call_log.on_event),
+                    bus.subscribe(bridge.on_event)]
+    try:
+        yield
+    finally:
+        await bridge.close()
+        for unsubscribe in unsubscribers:
+            unsubscribe()
+
+
+app = FastAPI(title="TechTwin", lifespan=lifespan)
 app.include_router(router)
 app.include_router(browser_voice_router)
+app.include_router(dashboard_router)
 VOICE_DEMO = Path(__file__).resolve().parent.parent / "voice_demo"
 app.mount("/voice-demo", StaticFiles(directory=VOICE_DEMO), name="voice-demo")
 STATIC = Path(__file__).resolve().parent.parent / "static"
@@ -35,44 +55,7 @@ async def talk():
 
 
 def snapshot():
-    state = {"call": None, "task": None, "steps": [], "transcript": [],
-             "pending_approval": None, "blocked": None}
-    for event in list(bus.history):
-        kind = event["type"]
-        if kind == "reset":
-            state = {"call": None, "task": None, "steps": [], "transcript": [],
-                     "pending_approval": None, "blocked": None}
-        elif kind in {"call_started", "call_ended"}:
-            state["call"] = event
-        elif kind == "transcript":
-            rows = state["transcript"]
-            if rows and rows[-1]["who"] == event["who"] and not rows[-1]["final"]:
-                rows[-1] = event
-            else:
-                rows.append(event)
-        elif kind in {"task_started", "task_finished"}:
-            state["task"] = event
-            state["pending_approval"] = None
-        elif kind == "step":
-            rows = state["steps"]
-            old = next((i for i, row in enumerate(rows) if (row["task_id"], row["n"]) ==
-                        (event["task_id"], event["n"])), None)
-            if old is None:
-                rows.append(event)
-            else:
-                rows[old] = event
-        elif kind == "needs_approval":
-            state["pending_approval"] = event
-        elif kind == "approval_result":
-            state["pending_approval"] = None
-        elif kind == "blocked":
-            state["blocked"] = event
-    return state
-
-
-@app.get("/api/state")
-async def state():
-    return snapshot()
+    return state.snapshot()
 
 
 @app.get("/dashboard")
@@ -100,7 +83,7 @@ async def dashboard_events(ws: WebSocket):
             await ws.receive_text()
     workers = []
     try:
-        await ws.send_json({"type": "snapshot", **snapshot()})
+        await ws.send_json({"type": "snapshot", "ts": time.time(), **snapshot()})
         workers = [asyncio.create_task(send()), asyncio.create_task(receive())]
         done, _ = await asyncio.wait(workers, return_when=asyncio.FIRST_COMPLETED)
         for worker in done:

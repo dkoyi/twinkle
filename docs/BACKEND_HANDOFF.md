@@ -255,6 +255,6 @@ Questions: ask in the group chat, tag the owner from the table at the top. Chang
 
 The initial phone/voice backend now uses the shared event bus for all browser
 commands, as required by section 1. See [Maulik's setup guide](MAULIK_SETUP.md)
-for the `voice_command` / `voice_command_result` fields and runner-listener
-example. `app/main.py` and `app/events.py` are in place; merge these shared files
+for the `voice_command` / `voice_command_result` fields and `attach_runner`
+registration. The bridge already subscribes to commands; do not add a duplicate listener. `app/main.py` and `app/events.py` are in place; merge these shared files
 carefully when adding browser startup and the remaining dashboard endpoints.

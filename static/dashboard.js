@@ -37,9 +37,20 @@
     sec = Math.max(0, Math.round(sec));
     return Math.floor(sec / 60) + ":" + String(sec % 60).padStart(2, "0");
   }
-  function post(path) {
+  async function post(path, body) {
     if (demo.active) return Promise.resolve();
-    return fetch(path, { method: "POST" }).catch(() => {});
+    const error = $("controlError");
+    error.hidden = true;
+    try {
+      const response = await fetch(path, { method: "POST",
+        ...(body ? {headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)} : {}) });
+      const result = await response.json();
+      if (!response.ok) throw new Error(typeof result.detail === "string" ? result.detail : "Please describe what you need help with.");
+      return result;
+    } catch (failure) {
+      error.textContent = failure.message || "Could not reach TechTwin. Please try again.";
+      error.hidden = false;
+    }
   }
 
   /* ---------- overall mood (drives the aura colour) ---------- */
@@ -86,7 +97,7 @@
     }
     if (t && t.finished) return [t.summary || "All done.", "Is there anything else?"];
     if (state.call) return ["I’m listening.", "Say what you’d like help with."];
-    return ["Ready for a call.", "Call the TechTwin number and say what you need."];
+    return ["Ready to help.", "Open Talk to TechTwin to start a conversation."];
   }
   let lastNow = "";
   function renderNow() {
@@ -136,8 +147,9 @@
     el.bubbles.scrollTop = el.bubbles.scrollHeight;
   }
   function addTranscript(ev) {
-    const last = state.transcript[state.transcript.length - 1];
-    const node = el.bubbles.lastElementChild;
+    const partialIndex = state.transcript.findLastIndex((m) => m.who === ev.who && !m.final);
+    const last = state.transcript[partialIndex];
+    const node = el.bubbles.children[partialIndex];
     if (last && !last.final && last.who === ev.who) {
       last.text = ev.text; last.final = !!ev.final;
       node.className = "bubble " + last.who + (last.final ? "" : " partial");
@@ -233,10 +245,12 @@
   /* ---------- applying data ---------- */
   function applySnapshot(s) {
     Object.assign(state, fresh());
-    if (s.call) state.call = Object.assign({ ts: Date.now() / 1000 }, s.call);
+    if (s.call && s.call.type !== "call_ended") state.call = Object.assign({ ts: Date.now() / 1000 }, s.call);
     if (s.task) state.task = s.task;
     state.pending = s.pending_approval || null;
     state.blocked = s.blocked || null;
+    state.speaking = !!s.speaking;
+    state.address = s.page_url || "";
     state.transcript = (s.transcript || []).map((m) => ({ who: m.who, text: m.text, final: m.final !== false }));
     state.steps = (s.steps || []).map((x) => ({
       key: "s" + x.n, n: x.n, summary: x.summary, status: x.status,
@@ -353,9 +367,13 @@
   /* ---------- buttons ---------- */
   el.yes.addEventListener("click", () => demo.active ? demo.answer(true) : post("/api/confirm"));
   el.no.addEventListener("click", () => demo.active ? demo.answer(false) : post("/api/cancel"));
-  el.stop.addEventListener("click", () => demo.active ? demo.stop() : post("/api/cancel").then(() => post("/api/reset")));
+  el.stop.addEventListener("click", () => demo.active ? demo.stop() : post("/api/stop"));
   el.reset.addEventListener("click", () => demo.active ? demo.stop(true) : post("/api/reset"));
   el.practice.addEventListener("click", () => demo.start(handle));
+  $("taskForm").addEventListener("submit", (event) => {
+    event.preventDefault();
+    if (!demo.active) post("/api/start_task", {goal: $("taskGoal").value});
+  });
 
   /* ---------- connection with automatic reconnect ---------- */
   const demo = window.TechTwinDemo || { active: false, start() {}, stop() {}, answer() {} };

@@ -94,7 +94,7 @@ body[data-state="done"]      { --aura: var(--go); --aura-glow: rgba(44,143,94,0.
 }
 .chip.live .chip-dot { background: var(--go); animation: blink 1.6s ease-in-out infinite; }
 
-.tools { display: flex; justify-content: flex-end; align-items: center; gap: 10px; }
+.tools { display: flex; justify-content: flex-end; align-items: center; gap: 10px; flex-wrap: wrap; }
 .tool {
   border: 2px solid rgba(23,50,61,0.18);
   background: transparent;
@@ -413,3 +413,11 @@ body[data-state="working"] .window { animation: aura-breathe 3.2s ease-in-out in
   .sheet-question { font-size: 28px; }
   .big { font-size: 24px; padding: 14px 22px; }
 }
+
+/* Real demo controls use the same calm palette as the dashboard. */
+a.tool { text-decoration: none; display: inline-flex; align-items: center; }
+.task-form { display: grid; gap: 8px; }
+.task-form label { font-size: 17px; color: var(--ink-soft); }
+.task-form > div { display: flex; gap: 8px; }
+.task-form input { flex: 1; min-width: 0; border: 1px solid #bccdcb; border-radius: 10px; padding: 10px 12px; font: inherit; background: var(--paper); color: var(--ink); }
+.control-error { margin: 0; padding: 12px; background: #fff0e7; color: #853e2c; border-radius: 10px; font-size: 17px; }
