@@ -114,7 +114,7 @@
   }
 
   function renderAddress() {
-    el.address.textContent = state.address || (state.task ? "Opening…" : "Waiting to start");
+    el.address.textContent = domainOf(state.address) || (state.task ? "Opening…" : "Waiting to start");
   }
 
   /* transcript */
