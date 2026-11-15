@@ -17,7 +17,7 @@ def client(monkeypatch):
 
 
 def test_demo_page_and_assets(client):
-    page = client.get('/talk')
+    page = client.get('/classic')
     assert page.status_code == 200 and 'Call Twinkle' in page.text
     assert 'No telephone call is placed' in page.text
     assert 'fake-server-key' not in page.text

@@ -1,5 +1,4 @@
-"""Guards for the front end: assets are served, pages load the brand layer, and the element ids
-that Maulik's scripts drive still exist. A redesign may change any look, never these names."""
+"""The Twinkle front end: pages are served, assets load, and every element id a script looks up exists."""
 import re
 from pathlib import Path
 
@@ -17,48 +16,44 @@ def client():
         yield c
 
 
-@pytest.mark.parametrize("path", [
-    "/static/brand/brand.css", "/static/brand/twinkle.js", "/static/brand/widget.js",
-    "/static/brand/favicon.svg", "/static/fonts/Baloo2.woff2", "/static/fonts/AtkinsonNext.woff2",
-    "/voice-demo/style.css", "/voice-demo/talk.js",
-])
-def test_brand_assets_are_served(client, path):
+@pytest.mark.parametrize("path", ["/", "/talk", "/dashboard", "/family", "/help", "/classic"])
+def test_pages_are_served(client, path):
     assert client.get(path).status_code == 200
 
 
-def test_phone_page_is_the_twinkle_page(client):
+@pytest.mark.parametrize("path", [
+    "/static/phone.css", "/static/phone.js", "/static/voice.js", "/static/demo.js",
+    "/static/dashboard.css", "/static/dashboard.js", "/static/mascot.js",
+    "/static/twinkle.js", "/static/twinkle.css",
+    "/static/assets/favicon.svg", "/static/assets/twinkle-idle-still.svg",
+    "/static/fonts/baloo-2-latin-800-normal.woff2",
+    "/static/fonts/atkinson-hyperlegible-next-latin-400-normal.woff2",
+    "/voice-demo/microphone.js",
+])
+def test_assets_are_served(client, path):
+    assert client.get(path).status_code == 200
+
+
+def test_phone_page_carries_the_real_call(client):
     page = client.get("/talk").text
-    assert "Call Twinkle" in page and "No telephone call is placed" in page
-    assert "/static/brand/widget.js" in page and "/static/brand/brand.css" in page
-    assert 'id="phoneTwinkle"' in page
-
-
-def test_dashboard_feeds_the_floating_twinkle(client):
-    page = client.get("/dashboard").text
-    assert "data-feeds-widget" in page and "/static/brand/widget.js" in page
-    assert 'id="emptyMascot"' in page
+    assert "Call Twinkle" in page
+    # voice.js (the real microphone and audio) must load before phone.js uses it
+    assert page.index("voice.js") < page.index("phone.js")
 
 
 def _ids_used(script_path, pattern):
     return set(re.findall(pattern, (ROOT / script_path).read_text(encoding="utf-8")))
 
 
-def test_every_element_id_the_phone_script_uses_exists(client):
-    page = client.get("/talk").text
-    ids = _ids_used("voice_demo/talk.js", r"\$\('([A-Za-z]+)'\)")
-    assert ids, "no ids found: update this test if talk.js changed how it looks elements up"
-    missing = sorted(i for i in ids if f'id="{i}"' not in page)
-    assert not missing, f"talk.js needs these ids in voice_demo/index.html: {missing}"
-
-
-def test_every_element_id_the_dashboard_script_uses_exists(client):
-    page = client.get("/dashboard").text
-    ids = _ids_used("static/dashboard.js", r'\$\("([A-Za-z]+)"\)')
-    assert ids
-    missing = sorted(i for i in ids if f'id="{i}"' not in page)
-    assert not missing, f"dashboard.js needs these ids in static/dashboard.html: {missing}"
-
-
-def test_the_widget_is_not_added_inside_the_embedded_dashboard():
-    text = (ROOT / "static/brand/widget.js").read_text(encoding="utf-8")
-    assert "window.self !== window.top" in text
+@pytest.mark.parametrize("route, script", [
+    ("/talk", "static/phone.js"),
+    ("/dashboard", "static/dashboard.js"),
+    ("/classic", "voice_demo/talk.js"),
+])
+def test_every_element_id_a_script_uses_exists(client, route, script):
+    page = client.get(route).text
+    ids = _ids_used(script, r"\$\(['\"]([A-Za-z0-9]+)['\"]\)")
+    assert ids, f"no ids found in {script}"
+    built = {"history", "recentSteps"}  # family page only; dashboard.js skips them when absent
+    missing = sorted(i for i in ids - built if f'id="{i}"' not in page)
+    assert not missing, f"{script} needs these ids on {route}: {missing}"

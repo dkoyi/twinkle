@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Twinkle: component sheet</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath d='M24 3C25.6 14.6 33.4 22.4 45 24C33.4 25.6 25.6 33.4 24 45C22.4 33.4 14.6 25.6 3 24C14.6 22.4 22.4 14.6 24 3Z' fill='%23F4B52E' stroke='%231F3A44' stroke-width='3' stroke-linejoin='round'/%3E%3C/svg%3E">
+<script data-assets="css">(function(){var B=location.protocol==='file:'?'./':'/static/';['dashboard.css','twinkle.css'].forEach(function(f){document.write('<link rel="stylesheet" href="'+B+f+'">');});})();</script>
+</head>
+<body data-page="sheet">
+<div class="sheet">
+  <h1>Twinkle component sheet</h1>
+  <p class="lead">Every piece of the screen in every state. Copy a template from here; all of them read the same colour, radius and type variables.</p>
+
+  <section>
+    <h2>The aura</h2>
+    <p class="note">The ring and glow around the live screen tell the whole room what is happening.</p>
+    <div class="grid" id="auras"></div>
+  </section>
+
+  <section>
+    <h2>Banners</h2>
+    <p class="note">Asking first (yellow) and stopping for safety (red). Only one shows at a time; red wins.</p>
+    <div class="sheet-stack">
+      <div class="banner banner--ask static">
+        <div class="banner-title"><span aria-hidden="true" data-icon="ask"></span>Twinkle is asking first</div>
+        <div class="banner-main">Shall I press Join?</div>
+        <div class="banner-actions">
+          <button class="btn btn-big btn-yes">Yes, go ahead</button>
+          <button class="btn btn-big btn-no">No, don&rsquo;t</button>
+        </div>
+      </div>
+      <div class="banner banner--stop static">
+        <span data-shield></span>
+        <div class="banner-title">Twinkle stopped to keep things safe</div>
+        <div class="banner-main">This page asks for a password. This part needs you or a family member.</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Conversation bubbles</h2>
+    <div class="sheet-stack" id="bubbles" style="max-width:720px"></div>
+  </section>
+
+  <section>
+    <h2>Step cards</h2>
+    <p class="note">Running, done, failed, waiting for a yes, and stopped for safety.</p>
+    <div class="sheet-row" id="steps"></div>
+  </section>
+
+  <section>
+    <h2>Voice bars, call chip and Twinkle</h2>
+    <div class="grid">
+      <div class="cell"><span class="label">Voice bars: quiet</span><div class="voice"><div class="bars"><i></i><i></i><i></i><i></i><i></i></div><span class="voice-label">Quiet</span></div></div>
+      <div class="cell" data-speaking="true"><span class="label">Voice bars: Twinkle is talking</span><div class="voice"><div class="bars"><i></i><i></i><i></i><i></i><i></i></div><span class="voice-label">Twinkle is talking</span></div></div>
+      <div class="cell"><span class="label">Call chip: waiting</span><div><div class="chip" data-live="false"><span class="chip-dot"></span><span>Waiting for a call</span></div></div></div>
+      <div class="cell"><span class="label">Call chip: on a call</span><div><div class="chip" data-live="true"><span class="chip-dot"></span><span>Call from &bull;&bull;&bull; 4821 &middot; 1:23</span></div></div></div>
+    </div>
+    <div class="sheet-row" id="mascots" style="margin-top:24px"></div>
+  </section>
+
+  <section>
+    <h2>Buttons</h2>
+    <div class="sheet-row">
+      <button class="btn">Start over</button>
+      <button class="btn btn-quiet">Play a practice run</button>
+      <button class="btn btn-stop">Stop</button>
+      <button class="btn btn-big btn-yes">Yes, go ahead</button>
+      <button class="btn btn-big btn-no">No, don&rsquo;t</button>
+    </div>
+    <div style="max-width:420px;margin-top:16px"><button class="btn btn-stop-all">Stop everything</button></div>
+  </section>
+
+  <section>
+    <h2>Empty states</h2>
+    <div class="grid">
+      <div class="cell"><span class="label">The screen</span><div class="screen-frame"><div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="3"/><path d="M9 20h6M12 16v4"/></svg><p>Grandma&rsquo;s screen will appear here as soon as Twinkle starts helping.</p></div></div></div>
+      <div class="cell"><span class="label">The conversation</span><p class="convo-empty" style="margin:0;text-align:left">The conversation will show up here, word for word.</p></div>
+      <div class="cell"><span class="label">The filmstrip</span><p class="film-empty" style="padding:0">Each thing Twinkle does will appear here, one after another.</p></div>
+    </div>
+  </section>
+</div>
+
+<script data-assets="js">(function(){var B=location.protocol==='file:'?'./':'/static/';['mascot.js','twinkle.js','dashboard.js'].forEach(function(f){document.write('<script src="'+B+f+'"><\/script>');});})();</script>
+<script>
+(function () {
+  function el(tag, cls, html) { var e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; }
+  var states = [['idle','No call, no task. Still.'],['listening','On a call, nothing started yet. Very slow breathe.'],['working','A task is running. Slow breathe.'],['waiting','Waiting for a yes. Firm pulse.'],['blocked','Stopped for safety. Steady, no pulse.'],['done','Finished. One gentle bloom.']];
+  var A = document.getElementById('auras');
+  states.forEach(function (s) {
+    var c = el('div', 'cell');
+    c.innerHTML = '<div class="mini-window aura" data-aura="' + s[0] + '"><div class="mini-screen">' + s[0] + '</div></div><span class="label">' + s[1] + '</span>';
+    A.appendChild(c);
+  });
+  var B = document.getElementById('bubbles');
+  B.appendChild(TT.makeBubble('twinkle', "Hi, I'm Twinkle. What would you like help with today?", true));
+  B.appendChild(TT.makeBubble('caller', 'I want to watch the dal recipe video.', true));
+  B.appendChild(TT.makeBubble('twinkle', 'I found a video that looks right', false));
+  var S = document.getElementById('steps');
+  [['running','Opening YouTube',1],['done','Opened YouTube',1],['failed','That did not work',2],['waiting','Shall I press Join?',3],['blocked','Stopped: this page asks for a password','!']].forEach(function (x, i) {
+    S.appendChild(TT.makeStep({ n: x[2], summary: x[1], status: x[0], ts: 7 + i }, 0));
+  });
+  var M = document.getElementById('mascots');
+  TT.TWINKLE_EXPRESSIONS.forEach(function (e) {
+    var c = el('div', 'cell');
+    c.innerHTML = '<div class="mascot mascot-big"></div><span class="label">' + e + '</span>';
+    M.appendChild(c);
+    TT.twinkle.mount(c.firstChild, { expr: e });
+  });
+  document.querySelectorAll('[data-icon]').forEach(function (n) { n.innerHTML = TT.icon(n.getAttribute('data-icon')); n.firstChild.style.cssText = 'width:34px;height:34px'; });
+  document.querySelectorAll('[data-shield]').forEach(function (n) { n.innerHTML = TT.shieldSVG; });
+})();
+</script>
+</body>
+</html>

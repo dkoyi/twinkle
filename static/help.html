@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Twinkle: help</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath d='M24 3C25.6 14.6 33.4 22.4 45 24C33.4 25.6 25.6 33.4 24 45C22.4 33.4 14.6 25.6 3 24C14.6 22.4 22.4 14.6 24 3Z' fill='%23F4B52E' stroke='%231F3A44' stroke-width='3' stroke-linejoin='round'/%3E%3C/svg%3E">
+<script data-assets="css">(function(){var B=location.protocol==='file:'?'./':'/static/';['dashboard.css','twinkle.css'].forEach(function(f){document.write('<link rel="stylesheet" href="'+B+f+'">');});})();</script>
+<style>
+  body { min-height: 100vh; }
+  .help { max-width: 980px; margin: 0 auto; padding: var(--s6) var(--s5) var(--s7); display: grid; gap: var(--s5); }
+  .help-top { display: flex; align-items: center; gap: var(--s3); }
+  .help-card { display: none; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: var(--s6); align-items: center; padding: var(--s6); background: var(--paper); border-radius: var(--r-xl); box-shadow: var(--shadow-2); border-top: 10px solid var(--aura); }
+  .help-card:target, .help-card.on { display: grid; }
+  .help-face { width: 100%; aspect-ratio: 184 / 132; }
+  .help-card h1 { font-family: var(--font-display); font-weight: 800; font-size: clamp(36px, 4.2vw, 56px); line-height: 1.08; }
+  .help-card p.lead { margin-top: var(--s3); font-size: clamp(22px, 1.8vw, 28px); font-weight: 700; color: var(--soft); line-height: 1.3; }
+  .help-card ol, .help-card ul.checks { margin: var(--s5) 0 0; padding: 0; list-style: none; display: grid; gap: var(--s3); }
+  .help-card ol { counter-reset: s; }
+  .help-card ol li { counter-increment: s; display: flex; gap: var(--s3); align-items: flex-start; font-size: var(--fs-bubble); line-height: 1.3; }
+  .help-card ol li::before { content: counter(s); flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--ink); color: #fff; font: 800 22px var(--font-display); }
+  .checks li { display: flex; gap: var(--s3); align-items: center; padding: var(--s3) var(--s4); background: var(--linen); border-radius: var(--r-md); font-size: var(--fs-bubble); font-weight: 700; }
+  .checks li svg { width: 34px; height: 34px; flex: none; }
+  .checks li[data-ok="true"] { color: var(--go-ink); } .checks li[data-ok="false"] { color: var(--red-ink); }
+  .checks small { display: block; font-size: var(--fs-ui); font-weight: 500; color: var(--soft); }
+  .actions { margin-top: var(--s5); display: flex; flex-wrap: wrap; gap: var(--s3); }
+  .actions .btn { text-decoration: none; }
+  .pic { margin-top: var(--s5); max-width: 520px; }
+  .pic svg { width: 100%; height: auto; display: block; }
+  .pic-cap { margin-top: var(--s2); font-size: var(--fs-ui); color: var(--soft); font-weight: 500; }
+  .tabs { display: flex; flex-wrap: wrap; gap: var(--s2); }
+  .tabs a { padding: var(--s2) var(--s4); font-weight: 700; font-size: var(--fs-ui); color: var(--soft); text-decoration: none; background: var(--paper); border-radius: var(--r-pill); box-shadow: inset 0 0 0 3px var(--line); }
+  .tabs a[aria-current="true"] { background: var(--ink); color: #fff; box-shadow: none; }
+  @media (max-width: 760px) { .help-card { grid-template-columns: 1fr; text-align: left; } .help-face { max-width: 240px; } }
+</style>
+</head>
+<body data-page="help">
+<div class="help">
+  <div class="help-top"><span id="brandMark"></span><span class="brand-name">Twinkle</span></div>
+
+  <section class="help-card aura-card" id="mic" style="--aura: var(--ask)" data-mood="asking">
+    <div class="help-face" data-face></div>
+    <div>
+      <h1>The microphone is turned off for this page.</h1>
+      <p class="lead">Twinkle needs to hear you. Switching it on takes about ten seconds.</p>
+      <ol>
+        <li>Click the small icon at the left of the address bar. It looks like a lock or two sliders.</li>
+        <li>Find &ldquo;Microphone&rdquo; and switch it to &ldquo;Allow&rdquo;.</li>
+        <li>Come back here and press &ldquo;Try again&rdquo;.</li>
+      </ol>
+      <div class="pic" aria-hidden="true">
+        <svg viewBox="0 0 520 120" role="img"><rect x="4" y="14" width="512" height="64" rx="32" fill="#FFFDF8" stroke="#1F3A44" stroke-opacity=".25" stroke-width="3"/><circle cx="46" cy="46" r="22" fill="#FFE2CC" stroke="#D2700A" stroke-width="5"/><path d="M36 48h20M36 42h20" stroke="#1F3A44" stroke-width="4" stroke-linecap="round"/><text x="90" y="56" font-size="24" font-weight="700" fill="#4A5F67" font-family="sans-serif">localhost:8000</text><path d="M46 80 L46 108" stroke="#D2700A" stroke-width="5" stroke-linecap="round"/><path d="M34 98 L46 110 L58 98" fill="none" stroke="#D2700A" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><text x="74" y="106" font-size="22" font-weight="700" fill="#7A3F00" font-family="sans-serif">Click here first</text></svg>
+        <p class="pic-cap">Where to click, at the top of this page.</p>
+      </div>
+      <div class="actions"><a class="btn btn-yes" href="/talk">Try again</a><a class="btn" href="/talk">Type instead</a></div>
+    </div>
+  </section>
+
+  <section class="help-card" id="setup" style="--aura: var(--sand)" data-mood="idle">
+    <div class="help-face" data-face></div>
+    <div>
+      <h1>Twinkle isn&rsquo;t quite ready yet.</h1>
+      <p class="lead">Twinkle&rsquo;s voice isn&rsquo;t switched on yet. You can still type what you need.</p>
+      <ul class="checks" id="checks">
+        <li data-ok="false"><span data-ic="x"></span><span>The voice key is missing<small>Add GEMINI_API_KEY to the .env file, then restart Twinkle.</small></span></li>
+        <li data-ok="false"><span data-ic="x"></span><span>The laptop helper is not connected<small>Start the helper on this computer and keep its window open.</small></span></li>
+        <li data-ok="true"><span data-ic="check"></span><span>This page is running</span></li>
+      </ul>
+      <div class="actions"><a class="btn btn-yes" href="/talk">Check again</a><a class="btn" href="/talk">Type what you need</a></div>
+    </div>
+  </section>
+
+  <section class="help-card" id="offline" style="--aura: var(--sand)" data-mood="oops">
+    <div class="help-face" data-face></div>
+    <div>
+      <h1>I can&rsquo;t reach Twinkle.</h1>
+      <p class="lead">Can&rsquo;t reach Twinkle. Make sure Twinkle is running on this computer.</p>
+      <div class="actions"><a class="btn btn-yes" href="/talk">Try again</a></div>
+    </div>
+  </section>
+
+  <section class="help-card" id="wrong" style="--aura: var(--ask)" data-mood="oops">
+    <div class="help-face" data-face></div>
+    <div>
+      <h1>Something went wrong.</h1>
+      <p class="lead">Twinkle stopped, and nothing was changed on the computer. You can try again, or ask someone nearby.</p>
+      <div class="actions"><a class="btn btn-yes" href="/talk">Start again</a></div>
+    </div>
+  </section>
+
+  <section class="help-card" id="notfound" style="--aura: var(--sand)" data-mood="asking">
+    <div class="help-face" data-face></div>
+    <div>
+      <h1>I can&rsquo;t find that page.</h1>
+      <p class="lead">It may have moved. The start page has everything.</p>
+      <div class="actions"><a class="btn btn-yes" href="/talk">Go to the start</a></div>
+    </div>
+  </section>
+
+  <nav class="tabs" aria-label="Other help pages" id="tabs"></nav>
+</div>
+<script data-assets="js">(function(){var B=location.protocol==='file:'?'./':'/static/';['mascot.js','twinkle.js'].forEach(function(f){document.write('<script src="'+B+f+'"><\/script>');});})();</script>
+<script>
+(function(){
+  var views=[['mic','Microphone off'],['setup','Setup'],['offline','Can’t reach Twinkle'],['wrong','Went wrong'],['notfound','Not found']];
+  function show(){
+    var id=(location.hash||'#mic').slice(1); if(!document.getElementById(id)) id='mic';
+    views.forEach(function(v){document.getElementById(v[0]).classList.toggle('on',v[0]===id);});
+    document.querySelectorAll('#tabs a').forEach(function(a){a.setAttribute('aria-current',a.getAttribute('href')==='#'+id?'true':'false');});
+  }
+  document.getElementById('brandMark').innerHTML=TT.markSVG;
+  document.getElementById('tabs').innerHTML=views.map(function(v){return '<a href="#'+v[0]+'">'+v[1]+'</a>';}).join('');
+  document.querySelectorAll('.help-card').forEach(function(c){
+    var host=c.querySelector('[data-face]'); TT.twinkle.mount(host).set(c.getAttribute('data-mood'));
+  });
+  document.querySelectorAll('[data-ic]').forEach(function(s){s.innerHTML=TT.icon(s.getAttribute('data-ic'));});
+  window.addEventListener('hashchange',show); show();
+})();
+</script>
+</body>
+</html>

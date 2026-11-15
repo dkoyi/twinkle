@@ -78,4 +78,4 @@ def test_dashboard_snapshot_and_events(client):
         assert message['type'] == 'snapshot'
         assert message['pending_approval'] is None
     assert client.get('/api/state').status_code == 200
-    assert client.get('/').json()['message'] == 'TechTwin is running'
+    assert client.get('/api/health').json()['message'] == 'TechTwin is running'

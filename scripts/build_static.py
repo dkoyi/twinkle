@@ -49,13 +49,23 @@ def build_committed():
             tar.extractall(OUT, filter="data")
         # The phone page loads /voice-demo/... (with a hyphen); the folder in the repo uses an underscore.
         (OUT / "voice_demo").rename(OUT / "voice-demo")
-    config = {
-        "rewrites": [{"source": "/", "destination": "/voice-demo/index.html"},
-                     {"source": "/talk", "destination": "/voice-demo/index.html"}],
-        "redirects": [{"source": "/dashboard", "destination": "/static/dashboard.html?demo=dal", "permanent": False},
-                      {"source": "/family", "destination": "/static/dashboard.html?demo=dal", "permanent": False}],
-    }
-    return config
+    # A static host has no voice server: the phone runs its practice call instead of dialling.
+    phone = OUT / "static" / "phone.html"
+    if phone.exists():
+        html = phone.read_text(encoding="utf-8")
+        phone.write_text(html.replace("<head>", "<head>\n<script>window.TT_NO_WS = true;</script>", 1), encoding="utf-8")
+    return VERCEL_ROUTES
+
+
+# Keep in step with vercel.json at the repo root (that copy is what Vercel's Git builds read).
+VERCEL_ROUTES = {
+    "rewrites": [{"source": "/", "destination": "/static/phone.html"},
+                 {"source": "/talk", "destination": "/static/phone.html"},
+                 {"source": "/help", "destination": "/static/help.html"},
+                 {"source": "/classic", "destination": "/voice-demo/index.html"}],
+    "redirects": [{"source": "/dashboard", "destination": "/static/dashboard.html?demo=1", "permanent": False},
+                  {"source": "/family", "destination": "/static/family.html?demo=1", "permanent": False}],
+}
 
 
 def build_new():

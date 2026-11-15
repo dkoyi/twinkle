@@ -42,7 +42,7 @@ def client(monkeypatch):
 def test_pages_are_served(client):
     assert client.get("/").status_code == 200
     page = client.get("/dashboard")
-    assert page.status_code == 200 and "TechTwin" in page.text
+    assert page.status_code == 200 and "Twinkle" in page.text
     assert client.get("/static/dashboard.css").status_code == 200
     assert client.get("/static/dashboard.js").status_code == 200
 

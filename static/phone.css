@@ -1,0 +1,87 @@
+/* ==========================================================================
+   Twinkle phone page: an iPhone call screen and nothing else.
+   Designed at 393 x 852 (iPhone 15/16 size) and scaled to fit. On a real phone
+   (narrow screens) it fills the screen with no frame. iOS system font throughout
+   (SF Pro on Apple devices; the closest system font elsewhere).
+   ========================================================================== */
+:root {
+  --ios: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --ink: #1F3A44; --linen: #FAF3E8; --teal-ink: #0F5A60; --butter: #F4B52E;
+  --screen-a: #1D4650; --screen-b: #0E262C;
+  --glass: rgba(255, 255, 255, .20); --glass-hi: rgba(255, 255, 255, .34);
+  --ease: cubic-bezier(.22, 1, .36, 1);
+}
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { font-family: var(--ios); color: #fff; background: radial-gradient(900px 600px at 50% 0, #FFF9EE, var(--linen)); -webkit-font-smoothing: antialiased; overflow: hidden; }
+button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; padding: 0; }
+button:focus-visible { outline: 3px solid var(--butter); outline-offset: 3px; border-radius: 50%; }
+
+.stage { position: fixed; inset: 0; display: grid; place-items: center; }
+.shell { position: relative; width: 393px; height: 852px; flex: none; transform: scale(var(--k, 1)); transform-origin: center; }
+/* the phone's side buttons */
+.hw { position: absolute; width: 5px; border-radius: 3px; background: linear-gradient(#3b4a50, #1a262b); }
+.hw-action { left: -17px; top: 118px; height: 34px; } .hw-up { left: -17px; top: 176px; height: 62px; } .hw-down { left: -17px; top: 252px; height: 62px; }
+.hw-power { right: -17px; top: 206px; height: 96px; }
+.device {
+  position: absolute; inset: 0; border-radius: 55px; overflow: hidden; background: var(--screen-b);
+  box-shadow: 0 0 0 11px #0b1519, 0 0 0 13px #3a484e, 0 0 0 14px #0b1519, 0 40px 90px rgba(60, 40, 20, .35);
+}
+.island { position: absolute; z-index: 20; top: 11px; left: 50%; width: 126px; height: 37px; margin-left: -63px; border-radius: 20px; background: #000; }
+.micdot { position: absolute; right: 19px; top: 50%; width: 8px; height: 8px; margin-top: -4px; border-radius: 50%; background: #FF9F0A; opacity: 0; transition: opacity .3s; }
+.device[data-voice="live"] .micdot { opacity: 1; }
+.device[data-muted="on"] .micdot { background: #FF453A; }
+.statusbar { position: absolute; z-index: 19; top: 0; left: 0; right: 0; height: 56px; padding: 19px 36px 0 44px; display: flex; justify-content: space-between; align-items: flex-start; font: 600 17px var(--ios); color: #fff; letter-spacing: -.01em; }
+.sb-right { display: flex; gap: 6px; align-items: center; margin-top: 2px; } .sb-right svg { fill: #fff; }
+.home { position: absolute; z-index: 20; bottom: 8px; left: 50%; width: 139px; height: 5px; margin-left: -70px; border-radius: 3px; background: #fff; opacity: .9; }
+
+.view { position: absolute; inset: 0; transition: opacity .45s ease, transform .55s var(--ease), visibility 0s; }
+.device[data-view="poster"] .call, .device[data-view="call"] .poster, .device[data-view="ended"] .poster { opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .35s ease, transform .55s var(--ease), visibility 0s .4s; }
+.device[data-view="poster"] .call { transform: scale(1.04); }
+
+/* 1. contact poster */
+.poster { background: var(--teal-ink); display: grid; grid-template-rows: auto auto auto; align-content: center; justify-items: center; padding-bottom: 90px; }
+.pt, .pb { font: 800 128px/.95 var(--ios); letter-spacing: -.03em; color: #FFFDF8; }
+.pm { width: 300px; height: auto; margin: 6px 0; display: block; }
+.call-pill { position: absolute; left: 28px; right: 28px; bottom: 36px; height: 62px; border-radius: 31px; display: flex; align-items: center; justify-content: center; gap: 10px; background: #fff; color: #111; font: 600 22px var(--ios); }
+.call-pill .ico svg { width: 26px; height: 26px; display: block; }
+.call-pill:active { transform: scale(.97); }
+
+/* 2. call */
+.call { background: radial-gradient(420px 360px at 50% 40%, rgba(255, 255, 255, .10), transparent 70%), linear-gradient(to bottom, var(--screen-a), var(--screen-b)); }
+.who { position: absolute; top: 96px; left: 0; right: 0; text-align: center; }
+.timer { font: 400 20px var(--ios); color: rgba(255, 255, 255, .6); font-variant-numeric: tabular-nums; }
+.name { margin: 4px 0 0; font: 600 34px/1.15 var(--ios); color: #fff; letter-spacing: .004em; }
+.mid { position: absolute; top: 210px; left: 0; right: 0; display: grid; justify-items: center; }
+.mascot { width: 310px; height: auto; display: block; }
+
+.grid { position: absolute; left: 0; right: 0; bottom: 48px; padding: 0 34px; display: grid; grid-template-columns: repeat(3, 1fr); row-gap: 22px; justify-items: center; }
+.cb { display: grid; justify-items: center; gap: 8px; }
+.cb .c { width: 76px; height: 76px; border-radius: 50%; display: grid; place-items: center; background: var(--glass); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); transition: background .2s, transform .12s; }
+.cb .c svg { width: 34px; height: 34px; display: block; fill: #fff; stroke: none; }
+.cb .l { font: 400 16px var(--ios); color: #fff; }
+.cb:active .c { transform: scale(.94); background: var(--glass-hi); }
+.cb[aria-pressed="true"] .c { background: #fff; } .cb[aria-pressed="true"] .c svg { fill: #1b1b1b; }
+.cb.end .c { background: #FF3B30; } .cb.end:active .c { background: #D93228; }
+
+/* keypad (iOS) */
+.keypad { position: absolute; inset: 0; z-index: 8; padding: 118px 30px 46px; display: grid; grid-template-rows: auto 1fr auto; background: linear-gradient(to bottom, var(--screen-a), var(--screen-b)); opacity: 0; visibility: hidden; transition: opacity .3s, visibility 0s .3s; }
+.keypad.open { opacity: 1; visibility: visible; transition: opacity .3s, visibility 0s; }
+.kdisp { text-align: center; font: 300 38px/1.2 var(--ios); min-height: 46px; letter-spacing: .04em; }
+.kgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px 20px; justify-items: center; align-content: center; }
+.key { width: 78px; height: 78px; border-radius: 50%; background: var(--glass); display: grid; place-items: center; align-content: center; font: 400 34px/1 var(--ios); }
+.key small { display: block; font: 600 10px var(--ios); letter-spacing: .15em; margin-top: 2px; opacity: .9; min-height: 10px; }
+.key:active { background: var(--glass-hi); }
+.krow { display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: center; justify-items: center; margin-top: 8px; }
+.khide { font: 400 22px var(--ios); }
+
+.device[data-view="ended"] .call { opacity: .55; filter: saturate(.6); }
+.device[data-view="ended"] .grid { pointer-events: none; }
+
+/* a real phone: no frame, fill the screen */
+@media (max-width: 520px) {
+  body { background: var(--screen-b); }
+  .shell { width: 100vw; height: 100dvh; transform: none; }
+  .device { box-shadow: none; border-radius: 0; } .hw { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .view, .keypad { transition: none; } }

@@ -4,11 +4,13 @@
   "buildCommand": "python3 scripts/build_static.py --working",
   "outputDirectory": "deploy/techtwin",
   "rewrites": [
-    { "source": "/", "destination": "/voice-demo/index.html" },
-    { "source": "/talk", "destination": "/voice-demo/index.html" }
+    { "source": "/", "destination": "/static/phone.html" },
+    { "source": "/talk", "destination": "/static/phone.html" },
+    { "source": "/help", "destination": "/static/help.html" },
+    { "source": "/classic", "destination": "/voice-demo/index.html" }
   ],
   "redirects": [
-    { "source": "/dashboard", "destination": "/static/dashboard.html?demo=dal", "permanent": false },
-    { "source": "/family", "destination": "/static/dashboard.html?demo=dal", "permanent": false }
+    { "source": "/dashboard", "destination": "/static/dashboard.html?demo=1", "permanent": false },
+    { "source": "/family", "destination": "/static/family.html?demo=1", "permanent": false }
   ]
 }

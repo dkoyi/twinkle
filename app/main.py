@@ -79,14 +79,30 @@ if STATIC.is_dir():
     app.mount("/static", StaticFiles(directory=STATIC), name="static")
 
 
+NO_STORE = {'Cache-Control': 'no-store'}
+
+
 @app.get("/")
-async def root():
-    return {"message": "TechTwin is running", "voice_webhook": "/voice", "browser_voice": "/talk"}
-
-
 @app.get("/talk")
 async def talk():
-    return FileResponse(VOICE_DEMO / "index.html", headers={'Cache-Control': 'no-store'})
+    """The phone page: an iPhone call to Twinkle. static/voice.js carries the real call."""
+    return FileResponse(STATIC / "phone.html", headers=NO_STORE)
+
+
+@app.get("/classic")
+async def classic_talk():
+    """The earlier all-in-one call page (phone, transcript and laptop view together)."""
+    return FileResponse(VOICE_DEMO / "index.html", headers=NO_STORE)
+
+
+@app.get("/help")
+async def help_page():
+    return FileResponse(STATIC / "help.html", headers=NO_STORE)
+
+
+@app.get("/api/health")
+async def health():
+    return {"message": "TechTwin is running", "voice_webhook": "/voice", "browser_voice": "/talk"}
 
 
 def snapshot():

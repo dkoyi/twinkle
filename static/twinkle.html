@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meet Twinkle</title>
+<script data-assets="css">(function(){var B=location.protocol==='file:'?'./':'/static/';['dashboard.css','twinkle.css'].forEach(function(f){document.write('<link rel="stylesheet" href="'+B+f+'">');});})();</script>
+<style>
+  .tw-page { max-width: 1240px; margin: 0 auto; padding: 48px 32px 64px; }
+  .tw-hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 48px; align-items: center; }
+  .tw-hero .big { position: relative; width: 100%; aspect-ratio: 184 / 132; background: var(--paper); border-radius: var(--r-xl); box-shadow: var(--shadow-2); padding: 28px; border-top: 8px solid var(--peach); overflow: hidden; }
+  .tw-hero .big .live { width: 100%; height: 100%; }
+  .tw-title { font-family: var(--font-display); font-weight: 800; font-size: clamp(56px, 6vw, 92px); line-height: .95; letter-spacing: -0.04em; }
+  .tw-lede { font-size: 28px; font-weight: 700; color: var(--soft); margin-top: 16px; line-height: 1.25; max-width: 18em; }
+  .tw-say { margin-top: 24px; display: inline-block; background: var(--teal-ink); color: #fff; padding: 14px 24px 16px; border-radius: 28px 28px 28px 8px; font-size: 26px; box-shadow: var(--shadow-1); }
+  .tw-controls { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
+  .tw-controls .btn { min-height: 48px; padding: 0 18px; font-size: 20px; }
+  .tw-controls .btn[aria-pressed="true"] { background: var(--ink); color: #fff; }
+  .tw-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px; margin-top: 56px; }
+  .tw-card { background: var(--paper); border-radius: var(--r-lg); box-shadow: var(--shadow-1); padding: 20px 20px 22px; display: flex; flex-direction: column; gap: 8px; overflow: hidden; }
+  .tw-card .mini { width: 100%; aspect-ratio: 184 / 132; }
+  .tw-card h3 { font-family: var(--font-display); font-weight: 800; font-size: 26px; letter-spacing: -0.02em; }
+  .tw-card p { color: var(--soft); font-size: 20px; font-weight: 500; }
+  .tw-card p b { color: var(--ink); }
+  @media (max-width: 900px) { .tw-hero { grid-template-columns: 1fr; } .tw-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+</style>
+</head>
+<body data-page="sheet">
+<div class="tw-page">
+  <div class="tw-hero">
+    <div>
+      <h1 class="tw-title">Meet<br>Twinkle.</h1>
+      <p class="tw-lede">A pair of round glasses that looks at your screen for you.</p>
+      <p class="tw-say">&ldquo;Hi, it&rsquo;s Twinkle! What can I help you with today?&rdquo;</p>
+      <div class="tw-controls" id="controls" role="group" aria-label="Try a mood"></div>
+    </div>
+    <div class="big"><div class="live" id="hero"></div></div>
+  </div>
+  <div class="tw-grid" id="grid"></div>
+</div>
+<script data-assets="js">(function(){var B=location.protocol==='file:'?'./':'/static/';['mascot.js','twinkle.js'].forEach(function(f){document.write('<script src="'+B+f+'"><\/script>');});})();</script>
+<script>
+(function () {
+  var info = {
+    idle: ['Idle', 'Waiting. Blinks, looks around, tilts, and fidgets now and then.'],
+    listening: ['Listening', 'Leans toward you. Sound arcs come in.'],
+    talking: ['Talking', 'Bounces to the beat. Sound arcs go out.'],
+    thinking: ['Thinking', '<b>Squints</b>, sways, and glances side to side.'],
+    asking: ['Asking first', '<b>Lenses go wide</b>, brows up, a question mark floats.'],
+    success: ['Done', 'Eyes close into <b>happy arcs</b>. Pops up with confetti.'],
+    oops: ['Oops', 'Glasses <b>droop</b> and shake. One small tear.'],
+    careful: ['Stopped for safety', 'Firm brows and a small shield. Calm, not scary.']
+  };
+  var hero = TT.twinkle.mount(document.getElementById('hero'));
+  var ctl = document.getElementById('controls'), auto = null, btns = {};
+  function show(e) { hero.set(e); Object.keys(btns).forEach(function (k) { btns[k].setAttribute('aria-pressed', k === e ? 'true' : 'false'); }); }
+  TT.twinkle.expressions.forEach(function (e) {
+    var b = document.createElement('button'); b.className = 'btn'; b.textContent = info[e][0]; b.setAttribute('aria-pressed', 'false');
+    b.onclick = function () { stopAuto(); if (e === 'success' && hero.expr === 'success') { hero.pop(); } else { show(e); } };
+    ctl.appendChild(b); btns[e] = b;
+  });
+  var ab = document.createElement('button'); ab.className = 'btn'; ab.textContent = 'Play all'; ab.setAttribute('aria-pressed', 'false');
+  function stopAuto() { if (auto) { clearInterval(auto); auto = null; ab.setAttribute('aria-pressed', 'false'); } }
+  ab.onclick = function () {
+    if (auto) { stopAuto(); return; }
+    var i = 0; ab.setAttribute('aria-pressed', 'true'); show('idle');
+    auto = setInterval(function () { i = (i + 1) % TT.twinkle.expressions.length; show(TT.twinkle.expressions[i]); }, 3200);
+  };
+  ctl.appendChild(ab);
+  show('idle');
+  var g = document.getElementById('grid');
+  TT.twinkle.expressions.forEach(function (e) {
+    var c = document.createElement('div'); c.className = 'tw-card';
+    c.innerHTML = '<div class="mini"></div><h3>' + info[e][0] + '</h3><p>' + info[e][1] + '</p>';
+    g.appendChild(c);
+    var m = TT.twinkle.mount(c.firstChild, { expr: e });
+    if (e === 'success') setInterval(function () { m.pop(); }, 4200);
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Twinkle: watch along</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath d='M24 3C25.6 14.6 33.4 22.4 45 24C33.4 25.6 25.6 33.4 24 45C22.4 33.4 14.6 25.6 3 24C14.6 22.4 22.4 14.6 24 3Z' fill='%23F4B52E' stroke='%231F3A44' stroke-width='3' stroke-linejoin='round'/%3E%3C/svg%3E">
+<script data-assets="css">(function(){var B=location.protocol==='file:'?'./':'/static/';['dashboard.css','twinkle.css'].forEach(function(f){document.write('<link rel="stylesheet" href="'+B+f+'">');});})();</script>
+</head>
+<body data-page="family" data-state="idle" data-speaking="false">
+<div class="family" id="app">
+
+  <header class="header">
+    <div class="brand">
+      <span id="brandMark"></span>
+      <span class="brand-name">Twinkle</span>
+    </div>
+    <div class="chip" id="callChip" data-live="false" role="status" aria-live="polite">
+      <span class="chip-dot" aria-hidden="true"></span>
+      <span id="callChipText">Waiting for a call</span>
+    </div>
+  </header>
+
+  <section aria-live="polite">
+    <div class="mascot" id="mascot" data-expr="" aria-hidden="true" style="width:160px;height:115px;margin:0 0 8px"></div>
+    <h1 class="family-status" id="familyStatus"></h1>
+    <p class="family-sub" id="familySub"></p>
+  </section>
+
+  <section class="stage-holder" aria-label="Grandma's screen">
+    <div class="browser aura">
+      <div class="browser-bar">
+        <div class="dots" aria-hidden="true"><i></i><i></i><i></i></div>
+        <div class="address" id="address" data-empty="true">Waiting to start</div>
+      </div>
+      <div class="screen" id="screen" data-has-shot="false">
+        <img class="shot" id="shotA" alt="" decoding="async">
+        <img class="shot" id="shotB" alt="" decoding="async">
+        <div class="ripples" id="ripples" aria-hidden="true"></div>
+            <div class="celebrate" id="celebrate" aria-hidden="true"><div class="cel-bubble">All done!</div><div class="cel-mascot" id="celMascot"></div></div>
+        <div class="empty">
+              <div class="mascot-empty" id="emptyMascot" aria-hidden="true"></div>
+          <p>Grandma&rsquo;s screen will appear here when Twinkle starts helping.</p>
+        </div>
+      </div>
+      <div class="banner-slot">
+        <div class="banner banner--ask" id="bannerAsk" role="alertdialog" aria-labelledby="askTitle" aria-hidden="true">
+          <div class="banner-title" id="askTitle"><span aria-hidden="true" id="askIcon"></span>Twinkle is asking first</div>
+          <div class="banner-main" id="askQuestion"></div>
+          <div class="banner-actions">
+            <button class="btn btn-big btn-yes" id="askYes" data-act="confirm" tabindex="-1">Yes, go ahead</button>
+            <button class="btn btn-big btn-no" id="askNo" data-act="cancel" tabindex="-1">No, don&rsquo;t</button>
+          </div>
+        </div>
+        <div class="banner banner--stop" id="bannerStop" role="alert" aria-hidden="true">
+          <span id="stopIcon"></span>
+          <div class="banner-title">Twinkle stopped to keep things safe</div>
+          <div class="banner-main" id="stopReason"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2 class="section-title">What Twinkle just did</h2>
+    <ul class="recent-steps" id="recentSteps"></ul>
+  </section>
+
+  <section>
+    <h2 class="section-title">Recent help</h2>
+    <ul class="history" id="history"></ul>
+  </section>
+
+  <!-- the transcript and filmstrip containers exist so the shared script has somewhere to write; hidden here -->
+  <div hidden><div id="convo"></div><div id="film"></div><span id="voiceLabel"></span></div>
+
+  <div class="family-stop">
+    <button class="btn btn-stop-all" data-act="stop">Stop everything</button>
+  </div>
+</div>
+
+<script data-assets="js">(function(){var B=location.protocol==='file:'?'./':'/static/';['mascot.js','twinkle.js','dashboard.js','demo.js'].forEach(function(f){document.write('<script src="'+B+f+'"><\/script>');});})();</script>
+<script>
+  (function(){var a=document.getElementById('askIcon');if(a&&window.TT){a.innerHTML=TT.icon('ask');a.firstChild.style.cssText='width:34px;height:34px';}
+  var s=document.getElementById('stopIcon');if(s&&window.TT)s.innerHTML=TT.shieldSVG;})();
+</script>
+</body>
+</html>

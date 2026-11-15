@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src=".github/readme/logo.svg" width="110" alt="TechTwin logo: Twinkle's round glasses, one teal lens and one butter-yellow lens, with a yellow star above">
+<img src=".github/readme/logo.svg" width="420" alt="Twinkle logo: round glasses with a teal lens and a butter-yellow lens, the word Twinkle and a yellow star">
 
-# TechTwin
+# Twinkle
 
 ### Call Twinkle. Say what you need. Watch your own computer do it, safely.
 
@@ -14,7 +14,7 @@ A phone call for people who are not comfortable with computers. You talk to **Tw
 ![Stack](https://img.shields.io/badge/stack-FastAPI%20·%20Playwright%20·%20JS-55635b?style=for-the-badge)
 ![License](https://img.shields.io/badge/license-MIT-1E2A2B?style=for-the-badge)
 
-<img src=".github/readme/phone.png" width="860" alt="The TechTwin call page: a phone calling Twinkle beside the laptop's live screen">
+<img src=".github/readme/phone.png" width="420" alt="The phone page: Twinkle's contact card with one Call Twinkle button"> <img src=".github/readme/call.png" width="420" alt="On a call with Twinkle: the timer, her face and six iPhone call buttons">
 
 </div>
 
@@ -83,9 +83,10 @@ flowchart LR
 
 | Part | What it does |
 |---|---|
-| **Phone page** `/talk` | A phone you call Twinkle on. Live voice through Gemini, the conversation as text, the laptop's screen beside it. |
+| **Phone page** `/talk` | Just an iPhone call: Twinkle's contact card, then the call screen with speaker, FaceTime (opens the dashboard), mute, stop, end and keypad. Live voice through Gemini. |
 | **Dashboard** `/dashboard` | The laptop's live screen, every step Twinkle took, the transcript, big Yes / No when she asks first, Stop and Start over. |
-| **Floating Twinkle** | The mascot stays in the corner of every page and says in one sentence what is happening. She shows Yes / No when she is asking. |
+| **Twinkle herself** | A pair of round glasses with eight moods: idle, listening, talking, thinking, asking, success, oops, careful. She blinks, looks around and pops with confetti when the job is done. |
+| **Help** `/help` | Plain-word fixes for the microphone, setup and connection problems. |
 
 The phone in the browser stands in for a real phone line for the demo. The server also has a Twilio Media Streams path (`app/twilio_stream.py`) for real phone numbers.
 
