@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+websockets
+twilio
+google-genai
+anthropic
+playwright
+python-dotenv
+numpy
+pytest
+pytest-asyncio
+httpx
+python-multipart
