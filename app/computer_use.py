@@ -59,16 +59,42 @@ SYSTEM_PROMPT = """You are TechTwin, helping someone who is not comfortable with
 doing a task for them in a web browser.
 
 - Work step by step. Look at the screen, take the single most useful action, then look again.
+- Use one browser tool per turn. All x/y coordinates are normalized from 0 to 1000.
+- A tool response includes the current screenshot. Never claim success until the screenshot verifies it.
 - Keep going until the task is finished. Do not stop to ask questions: a separate safety \
 system asks the person before anything important happens.
 - You may ONLY use these websites: {domains}. If the task needs another site, stop and say so.
 - Never type passwords, card numbers or other private details. If a page asks for them, stop.
 - Prefer searching and clicking the obvious result. Close or ignore cookie banners and pop-ups \
 only if they block the page.
+- If a visible saved shortcut matches the person's request, use it first. Otherwise, \
+for a YouTube task, start directly on YouTube and use its search box. Do not open \
+search filters unless the person specifically requested filters.
 - When the task is finished, or you cannot continue, reply with ONE short, plain sentence for \
 an older person saying what happened, with no technical words and no mention of "pages" or \
 "elements" (for example: "The video is playing now.").
 """
+
+# Regular Gemini vision models can use these functions on the free tier. The
+# dedicated Computer Use preview has zero free quota on some projects.
+FUNCTIONS = [
+    {'name': 'navigate', 'description': 'Open an allowed website URL.',
+     'parameters': {'type': 'OBJECT', 'properties': {'url': {'type': 'STRING'}}, 'required': ['url']}},
+    {'name': 'click_at', 'description': 'Click a point on the screenshot. Coordinates are 0-1000.',
+     'parameters': {'type': 'OBJECT', 'properties': {'x': {'type': 'NUMBER'}, 'y': {'type': 'NUMBER'}}, 'required': ['x', 'y']}},
+    {'name': 'type_text_at', 'description': 'Click a text field, replace its contents and type. Only press Enter if needed.',
+     'parameters': {'type': 'OBJECT', 'properties': {'x': {'type': 'NUMBER'}, 'y': {'type': 'NUMBER'},
+                    'text': {'type': 'STRING'}, 'press_enter': {'type': 'BOOLEAN'}}, 'required': ['x', 'y', 'text', 'press_enter']}},
+    {'name': 'key_combination', 'description': 'Press keys, e.g. Enter or Control+A.',
+     'parameters': {'type': 'OBJECT', 'properties': {'keys': {'type': 'STRING'}}, 'required': ['keys']}},
+    {'name': 'scroll_document', 'description': 'Scroll the page up or down.',
+     'parameters': {'type': 'OBJECT', 'properties': {'direction': {'type': 'STRING', 'enum': ['up', 'down']},
+                     'magnitude': {'type': 'INTEGER'}}, 'required': ['direction']}},
+    {'name': 'wait_5_seconds', 'description': 'Wait for a page or video to load.',
+     'parameters': {'type': 'OBJECT', 'properties': {}}},
+    {'name': 'go_back', 'description': 'Go back to the previous page.',
+     'parameters': {'type': 'OBJECT', 'properties': {}}},
+]
 
 
 # ---------------------------------------------------------------------------
@@ -86,17 +112,25 @@ class GeminiProvider:
             raise ProviderError("GEMINI_API_KEY is missing. Add it to .env.")
         self.client = genai.Client(api_key=key)
         self.model = model or s.computer_use_model
+        self.custom_tools = self.model.startswith(('gemini-3', 'gemini-4')) or self.model == 'gemini-2.5-flash'
         self.contents: list = []
 
     def _config(self):
         from google.genai import types
 
         domains = ", ".join(get_settings().allowed_domains) or "none"
+        tools = ([types.Tool(function_declarations=FUNCTIONS)] if self.custom_tools else
+                 [types.Tool(computer_use=types.ComputerUse(environment=types.Environment.ENVIRONMENT_BROWSER))])
         return types.GenerateContentConfig(
             system_instruction=SYSTEM_PROMPT.format(domains=domains),
-            tools=[types.Tool(computer_use=types.ComputerUse(
-                environment=types.Environment.ENVIRONMENT_BROWSER))],
+            tools=tools,
+            automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
         )
+
+    async def close(self):
+        close = getattr(self.client.aio, 'aclose', None)
+        if close:
+            await close()
 
     def _prune(self) -> None:
         """Old screenshots are heavy and the model doesn't need them: keep the last few."""
@@ -126,9 +160,13 @@ class GeminiProvider:
                 break
             except Exception as exc:  # rate limit / network: back off and retry
                 last_exc = exc
+                if getattr(exc, 'code', None) == 429:
+                    raise ProviderError('The computer helper has reached a service limit. Please try again later.') from None
+                if getattr(exc, 'code', None) in (400, 403, 404):
+                    raise ProviderError('The computer helper is not available with these settings. Please ask a family member to check them.') from None
                 await asyncio.sleep(1.5 * (attempt + 1))
         else:
-            raise ProviderError(f"The model could not be reached: {last_exc!r}")
+            raise ProviderError('The browser model could not be reached. Check the configured model and free quota.')
 
         if not resp.candidates or not resp.candidates[0].content:
             raise ProviderError("The model sent an empty answer.")

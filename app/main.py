@@ -1,84 +1,139 @@
-"""TechTwin server.  Run:  uvicorn app.main:app --reload --port 8000
-
-Teammates: add your routers here (include_router) and start/stop long-lived things
-(Playwright browser, etc.) in `lifespan`.
-"""
-from __future__ import annotations
-
+"""Run with: uvicorn app.main:app --reload --port 8000."""
+import asyncio
+import logging
 import os
 from contextlib import asynccontextmanager
+import time
+import anyio
 from pathlib import Path
-
 from dotenv import load_dotenv
-from fastapi import FastAPI
-from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 load_dotenv()
+from app.events import bus
+from app.twilio_stream import router
+from app.browser_voice import router as browser_voice_router
+from app.dashboard import router as dashboard_router, state, clear_screenshot
+from app.integration import bridge
+from app.call_log import CallLog, enabled as logs_enabled
 
-from app import call_log, dashboard, dev_replay  # noqa: E402  (after load_dotenv so .env is visible)
-
-STATIC = Path(__file__).resolve().parent.parent / "static"
-
-
-def _wire_runner() -> None:
-    """Point the dashboard buttons at the real task runner."""
-    from functools import partial
-
-    from app.task_runner import runner
-
-    dashboard.hooks.confirm = partial(runner.confirm, by="dashboard")
-    dashboard.hooks.cancel = partial(runner.cancel, by="dashboard")
-    dashboard.hooks.stop = runner.stop
-    dashboard.hooks.reset = runner.reset
-    dashboard.hooks.start_task = runner.start
-
-
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 @asynccontextmanager
-async def lifespan(app: FastAPI):
-    autostart = os.getenv("BROWSER_AUTOSTART", "true").lower() != "false"
-    if autostart:
-        from app.events import bus
-        from app.task_runner import browser
-
-        _wire_runner()
-        if call_log.enabled():
-            call_log.install()
-        try:
-            await browser.start()  # one visible Chromium for the whole server lifetime
-        except Exception as exc:
-            print(f"[startup] Could not open the browser: {exc!r}\n"
-                  "          Run:  python -m playwright install chromium")
-            await bus.publish("error", where="browser", message=str(exc))
-    yield
-    if autostart:
-        from app.task_runner import browser
-
-        await browser.stop()
+async def lifespan(app):
+    state.reset()
+    clear_screenshot()
+    call_log = CallLog(Path(__file__).resolve().parent.parent / "logs")
+    unsubscribers = [bus.subscribe(bridge.on_event)]
+    if logs_enabled():
+        unsubscribers.append(bus.subscribe(call_log.on_event))
+    browser = None
+    startup_task = None
+    try:
+        if os.getenv('BROWSER_AUTOSTART', 'true').lower() != 'false':
+            from app.task_runner import browser, runner
+            async def start_helper():
+                try:
+                    await browser.start()
+                    bridge.attach(runner)
+                    await runner._show('preview', 0)
+                    # Keep the dashboard live after the last agent action too;
+                    # videos and loading pages continue changing between steps.
+                    while browser.started:
+                        await asyncio.sleep(1)
+                        try:
+                            await runner._show(runner.task_id or 'preview', runner._steps)
+                        except Exception:
+                            logging.getLogger(__name__).debug('Waiting for the next browser frame')
+                except Exception:
+                    logging.getLogger(__name__).exception('Browser startup failed')
+                    await bus.publish('error', where='browser', message='The laptop helper could not open. Restart the server after installing Chromium.')
+            # The clean start page is served by this app, so start accepting HTTP
+            # before the helper navigates there. Awaiting it here deadlocks startup.
+            startup_task = asyncio.create_task(start_helper())
+        yield
+    finally:
+        if startup_task:
+            startup_task.cancel()
+            await asyncio.gather(startup_task, return_exceptions=True)
+        await bridge.close()
+        if browser:
+            await browser.stop()
+            bridge.attach(None)
+        for unsubscribe in unsubscribers:
+            unsubscribe()
 
 
 app = FastAPI(title="TechTwin", lifespan=lifespan)
-app.mount("/static", StaticFiles(directory=STATIC), name="static")
-app.include_router(dashboard.router)
+app.include_router(router)
+app.include_router(browser_voice_router)
+app.include_router(dashboard_router)
+from app import dev_replay
 if dev_replay.enabled():
     app.include_router(dev_replay.router)
+VOICE_DEMO = Path(__file__).resolve().parent.parent / "voice_demo"
+app.mount("/voice-demo", StaticFiles(directory=VOICE_DEMO), name="voice-demo")
+STATIC = Path(__file__).resolve().parent.parent / "static"
+if STATIC.is_dir():
+    app.mount("/static", StaticFiles(directory=STATIC), name="static")
 
 
-@app.get("/", response_class=HTMLResponse)
-async def home() -> str:
-    return (
-        "<h1>TechTwin is running</h1>"
-        '<p><a href="/dashboard">Open the dashboard</a> &middot; '
-        '<a href="/static/dashboard.html?demo=dal">Practice run (no server needed)</a></p>'
-    )
+@app.get("/")
+async def root():
+    return {"message": "TechTwin is running", "voice_webhook": "/voice", "browser_voice": "/talk"}
+
+
+@app.get("/talk")
+async def talk():
+    return FileResponse(VOICE_DEMO / "index.html")
+
+
+def snapshot():
+    return state.snapshot()
 
 
 @app.get("/dashboard")
-async def dashboard_page() -> FileResponse:
-    return FileResponse(STATIC / "dashboard.html")
+async def dashboard():
+    path = STATIC / "dashboard.html"
+    if path.exists():
+        return FileResponse(path)
+    return {"message": "The phone backend is ready. Shrey's dashboard will appear here when added."}
 
 
 @app.get("/family")
-async def family_page():
-    page = STATIC / "family.html"
-    return FileResponse(page) if page.exists() else RedirectResponse("/dashboard")
+async def family():
+    path = STATIC / "family.html"
+    return FileResponse(path) if path.exists() else RedirectResponse("/dashboard")
+
+
+@app.websocket("/ws/dashboard")
+async def dashboard_events(ws: WebSocket):
+    await ws.accept()
+    queue = asyncio.Queue(maxsize=100)
+    async def forward(event):
+        if queue.full():
+            queue.get_nowait()
+        queue.put_nowait(event)
+    unsubscribe = bus.subscribe(forward)
+    async def send():
+        while True:
+            await ws.send_json(await queue.get())
+    async def receive():
+        while True:
+            await ws.receive_text()
+    workers = []
+    try:
+        await ws.send_json({"type": "snapshot", "ts": time.time(), **snapshot()})
+        workers = [asyncio.create_task(send()), asyncio.create_task(receive())]
+        done, _ = await asyncio.wait(workers, return_when=asyncio.FIRST_COMPLETED)
+        for worker in done:
+            worker.result()
+    except (WebSocketDisconnect, asyncio.CancelledError):
+        pass
+    finally:
+        unsubscribe()
+        with anyio.CancelScope(shield=True):
+            for worker in workers:
+                worker.cancel()
+            await asyncio.gather(*workers, return_exceptions=True)

@@ -5,12 +5,37 @@ from fastapi.testclient import TestClient
 
 from app.events import bus
 from app.main import app
+from app.integration import bridge
+
+
+class TestRunner:
+    __test__ = False
+
+    async def start(self, goal):
+        await bus.publish('task_started', task_id='test', goal=goal)
+        return 'test'
+
+    async def confirm(self, by='dashboard'):
+        p = bus.state.pending_approval
+        if p:
+            await bus.publish('approval_result', task_id=p['task_id'], approved=True, by=by)
+
+    async def stop(self): pass
+    async def reset(self): pass
+
+
+def receive_type(ws, kind):
+    while True:
+        event = ws.receive_json()
+        if event['type'] == kind:
+            return event
 
 
 @pytest.fixture
-def client():
+def client(monkeypatch):
     bus.state.reset()
-    with TestClient(app) as c:
+    monkeypatch.setattr(bridge, 'runner', TestRunner())
+    with TestClient(app, base_url='http://localhost', headers={'host': 'localhost'}) as c:
         yield c
 
 
@@ -33,12 +58,12 @@ def test_websocket_sends_snapshot_then_live_events(client):
         first = ws.receive_json()
         assert first["type"] == "snapshot"
         assert client.post("/api/start_task", json={"goal": "play a video"}).json()["ok"] is True
-        ev = ws.receive_json()
+        ev = receive_type(ws, 'task_started')
         assert ev["type"] == "task_started" and ev["goal"] == "play a video"
 
 
 def test_start_task_needs_a_goal(client):
-    assert client.post("/api/start_task", json={"goal": "  "}).json()["ok"] is False
+    assert client.post("/api/start_task", json={"goal": "  "}).status_code == 422
 
 
 def test_confirm_resolves_pending_approval(client):
@@ -47,7 +72,7 @@ def test_confirm_resolves_pending_approval(client):
         client.portal.call(partial(bus.publish, "needs_approval", task_id="t", step_n=1, question="Shall I?", reason="r"))
         assert ws.receive_json()["type"] == "needs_approval"
         client.post("/api/confirm")
-        ev = ws.receive_json()
+        ev = receive_type(ws, 'approval_result')
         assert ev["type"] == "approval_result" and ev["approved"] is True
     assert bus.state.pending_approval is None
 

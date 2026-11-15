@@ -20,6 +20,7 @@ import asyncio
 import re
 import time
 from typing import Optional
+from uuid import uuid4
 from urllib.parse import urlparse
 
 from app import computer_use, safety, screenshots
@@ -97,6 +98,7 @@ class TaskRunner:
         self._approval: Optional[asyncio.Future] = None
         self._pending: Optional[dict] = None
         self._steps = 0
+        self._provider = None
 
     # ------------------------------------------------------------------ public API
     @property
@@ -110,7 +112,7 @@ class TaskRunner:
         if not goal:
             raise ValueError("Please tell me what you'd like help with.")
         self._counter += 1
-        self.task_id = f"t{self._counter}"
+        self.task_id = f"t-{uuid4().hex[:12]}"
         self.goal = goal
         self._steps = 0
         await self.bus.publish("task_started", task_id=self.task_id, goal=goal)
@@ -177,6 +179,13 @@ class TaskRunner:
                 await self.bus.publish("approval_result", task_id=self.task_id, approved=False, by="timeout")
             return False
         finally:
+            close = getattr(self._provider, 'close', None)
+            if close:
+                try:
+                    await close()
+                except Exception:
+                    pass
+            self._provider = None
             if not fut.done():
                 fut.cancel()  # we were stopped while waiting
             self._approval = None
@@ -195,9 +204,9 @@ class TaskRunner:
             outcome, summary = "cancelled", "Okay, I've stopped."
         except ProviderError as exc:
             await self.bus.publish("error", where="model", message=str(exc))
-            outcome, summary = "failed", "I can't think clearly right now. Please ask a family member to check my settings."
-        except Exception as exc:  # never let one task take the server down
-            await self.bus.publish("error", where="task_runner", message=repr(exc))
+            outcome, summary = "failed", "The computer helper is unavailable. Please ask a family member or try again shortly."
+        except Exception:  # never let one task take the server down
+            await self.bus.publish("error", where="task_runner", message='The computer helper had a problem and stopped safely.')
             outcome, summary = "failed", "Something unexpected happened, so I stopped."
         finally:
             self._approval = None
@@ -208,6 +217,7 @@ class TaskRunner:
     async def _loop(self, goal: str, task_id: str) -> tuple[str, str]:
         s = get_settings()
         provider = self.provider_factory()
+        self._provider = provider
         png = await self.browser.screenshot_png()
         await self._show(task_id, 0)
         proposal = await provider.start(goal, png)

@@ -112,7 +112,7 @@ def test_a_simple_task_runs_to_done_and_reports_in_plain_words():
         return tid, browser, events
 
     tid, browser, events = run(go())
-    assert tid == "t1" and len(browser.executed) == 1
+    assert tid.startswith('t-') and len(browser.executed) == 1
     ts = types(events)
     assert ts[0] == "task_started" and ts[-1] == "task_finished"
     assert "screenshot" in ts

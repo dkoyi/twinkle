@@ -63,6 +63,7 @@ def _flag(args: dict, name: str, default: bool) -> bool:
 
 
 _KEY_NAMES = {"ctrl": "Control", "cmd": "Meta", "command": "Meta", "esc": "Escape", "return": "Enter",
+              "enter": "Enter", "space": "Space", "tab": "Tab", "backspace": "Backspace",
               "del": "Delete", "pgdn": "PageDown", "pgup": "PageUp", "arrowdown": "ArrowDown"}
 
 

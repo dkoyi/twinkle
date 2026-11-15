@@ -25,8 +25,10 @@
     </div>
 
     <div class="tools">
+      <a class="tool" href="/talk" target="_blank" rel="noopener">Talk to TechTwin</a>
       <span class="link-state" id="linkState" hidden>Reconnecting&hellip;</span>
       <button class="tool" id="practiceBtn" type="button" hidden>Play a practice run</button>
+      <button class="tool" id="safetyDemoBtn" type="button">Show safety check</button>
       <button class="tool" id="stopBtn" type="button">Stop</button>
       <button class="tool" id="resetBtn" type="button">Start over</button>
     </div>
@@ -70,6 +72,11 @@
     </section>
 
     <aside class="side">
+      <form id="taskForm" class="task-form">
+        <label for="taskGoal">What would you like help with?</label>
+        <div><input id="taskGoal" required maxlength="1000" placeholder="Find a cooking video"><button class="tool" type="submit">Start task</button></div>
+      </form>
+      <p id="controlError" class="control-error" role="alert" hidden></p>
       <section class="now" aria-live="polite">
         <div class="voice" id="voice" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
         <p class="now-line" id="nowLine">Ready for a call.</p>

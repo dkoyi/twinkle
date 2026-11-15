@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TechTwin · Call Agent 1</title>
+<link rel="stylesheet" href="/voice-demo/style.css">
+<script src="/voice-demo/talk.js" defer></script>
+</head>
+<body data-phase="idle">
+<header><a class="brand" href="/talk"><span class="brand-icon" aria-hidden="true">tt</span>TechTwin</a><span class="demo-badge"><i></i>Browser phone demo</span><a class="dashboard-link" href="/dashboard" target="_blank" rel="noopener">Open dashboard <span aria-hidden="true">↗</span></a></header>
+<main>
+<section class="intro"><p class="eyebrow">A familiar call. A helping hand.</p><h1>A little help is<br>one call away.</h1><p>Call Agent 1. Say what you need.<br>Take the next step together.</p></section>
+<section class="demo-layout" aria-label="TechTwin phone demonstration">
+<div class="phone-column">
+<div class="phone" aria-label="Simulated phone calling Agent 1"><div class="phone-top"><span id="clock">TechTwin</span><span class="island" aria-hidden="true"></span><span class="signal" aria-hidden="true">▂▄▆ <span>▰</span></span></div>
+<div class="phone-screen">
+<p class="phone-label">TECHTWIN ASSISTANT</p>
+<div id="orb" class="avatar" aria-hidden="true"><span>tt</span><i></i></div>
+<h2>Agent 1</h2><p class="agent-description">A patient voice for everyday help</p>
+<div class="call-state"><p id="status" role="status" aria-live="polite">Ready to call</p><span id="duration">Voice over your browser</span></div>
+<div class="wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+<div class="phone-actions"><button id="mute" class="round-control" aria-label="Mute microphone" aria-pressed="false" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="13" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8"/></svg><span>Mute</span></button><button id="stop" class="round-control stop-control" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="3"/></svg><span>Stop task</span></button></div>
+<button id="start" class="call-button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3 4 4c-3 5 10 18 15 15l2-3-5-3-2 2c-3-1-5-3-6-6l2-2z"/></svg><span>Call Agent 1</span></button>
+<button id="end" class="call-button hangup" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 15v-4c5-5 13-5 18 0v4h-5v-3a13 13 0 0 0-8 0v3z"/></svg><span>End call</span></button>
+<p id="hint">Your microphone turns on when you call.</p>
+</div><div class="home-indicator" aria-hidden="true"></div></div>
+<p class="phone-caption"><span class="live-dot"></span>Simulated phone. Live Gemini conversation.</p>
+</div>
+<div class="session-column">
+<section class="session-card"><div class="card-header"><div><p class="eyebrow">On grandma’s laptop</p><h2>A little less to figure out.</h2></div><span id="helperStatus" class="helper-status">Checking helper…</span></div>
+<div class="laptop-preview" id="laptopPreview"><img id="laptopShot" alt="Latest view of the laptop’s browser" hidden><div id="laptopEmpty"><svg viewBox="0 0 64 48" aria-hidden="true"><rect x="8" y="4" width="48" height="32" rx="4"/><path d="M2 42h60M25 42h14"/></svg><p id="taskSummary">Your computer’s next steps will appear here.</p><span id="taskDetail">Agent 1 listens while you explain what you need.</span></div></div>
+</section>
+<section class="session-card transcript-panel"><div class="card-header"><div><p class="eyebrow">Every word, right here</p><h2>Our conversation</h2></div><span id="connection" class="connection">Not connected</span></div><div id="notice" role="status" hidden></div><div id="transcript" role="log" aria-live="polite"><p id="empty">“Play the dal recipe in my shortcuts.”<span>Start a call to talk with Agent 1.</span></p></div></section>
+</div>
+</section>
+<aside class="demo-note"><span class="note-icon" aria-hidden="true">i</span><p><strong>A phone experience, demonstrated in your browser.</strong> The conversation uses live Gemini audio. No telephone call is placed. Connecting a real phone number requires an upgraded Twilio account and a live telephone test.</p></aside>
+<footer><span>Your voice → Gemini → connected laptop helper</span><span>Audio is sent to Google Gemini only during your call.</span></footer>
+</main>
+</body></html>

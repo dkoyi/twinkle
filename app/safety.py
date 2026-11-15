@@ -52,7 +52,8 @@ PAGE_PROBE_JS = """
     (i.getAttribute('autocomplete') || '').toLowerCase().startsWith('cc-') ||
     cardRe.test([i.name, i.id, i.placeholder, i.getAttribute('aria-label')].join(' ')) ||
     (i.labels && [...i.labels].some(l => cardRe.test(l.innerText || ''))));
-  return {password, card};
+  const challenge = /verify you are human|unusual traffic from your computer|not a robot|complete the captcha/i.test(document.body?.innerText || '');
+  return {password, card, challenge};
 }
 """
 
@@ -67,7 +68,7 @@ ELEMENT_PROBE_JS = """
   const formText = form
     ? [...form.querySelectorAll('button, input[type=submit], [role=button]')].map(grab).join(' ').slice(0, 300)
     : '';
-  return {text: grab(target), form: formText, tag: target.tagName.toLowerCase()};
+  return {text: grab(target), form: formText, tag: target.tagName.toLowerCase(), href: target.href || ''};
 }
 """
 
@@ -145,6 +146,8 @@ async def check_page(page: Any) -> Verdict:
     if parsed.scheme in ("http", "https") and PATH_RE.search(parsed.path or ""):
         return Verdict("block", PAYMENT_URL_REASON)
     probe = await _probe(page, PAGE_PROBE_JS)
+    if probe.get('challenge') or urlparse(url).path.startswith('/sorry/'):
+        return Verdict('block', 'This website needs a person to complete a verification check. Please ask a family member for help.')
     if probe.get("password"):
         return Verdict("block", PASSWORD_REASON)
     if probe.get("card"):
@@ -157,12 +160,17 @@ async def check(action: Action, page: Any, viewport: tuple[int, int] | None = No
     v = await check_page(page)
     if not v.allowed:
         return v
+    sd = action.safety_decision
+    if isinstance(sd, dict) and str(sd.get('decision', '')).lower() in ('block', 'blocked', 'deny'):
+        return Verdict('block', 'This step was blocked to keep you safe.')
 
     if action.kind == "navigate":
         if not action.url or not host_allowed(action.url):
             return Verdict("block", _domain_reason(action.url or ""))
         if PATH_RE.search(urlparse(action.url if "://" in action.url else "https://" + action.url).path or ""):
             return Verdict("block", PAYMENT_URL_REASON)
+        if video_url(action.url):
+            return Verdict('ask_first', 'Opening this link will play a video.', question='Shall I play this video?')
 
     if action.kind == "type" and action.text and CARD_NUMBER_RE.fullmatch(action.text.strip()):
         return Verdict("block", TYPED_CARD_REASON)
@@ -171,9 +179,11 @@ async def check(action: Action, page: Any, viewport: tuple[int, int] | None = No
     w, h = viewport or (get_settings().viewport_w, get_settings().viewport_h)
 
     # Clicks: look at what is under the pointer.
-    if action.kind in ("click", "double_click") and action.has_point:
+    if action.kind in ("click", "double_click", "type") and action.has_point:
         info = await _probe(page, ELEMENT_PROBE_JS, [px(action.nx, w), px(action.ny, h)])
         text = (info.get("text") or "").strip()
+        if video_url(info.get('href', '')):
+            return Verdict('ask_first', 'Opening this link will play a video.', question='Shall I play this video?')
         m = ask.search(text)
         if m:
             label = text if 0 < len(text) <= 40 else m.group(0)
@@ -182,11 +192,13 @@ async def check(action: Action, page: Any, viewport: tuple[int, int] | None = No
 
     # Enter (typed with press_enter, or the Enter key): look at the focused form's buttons.
     wants_enter = (action.kind == "type" and action.press_enter) or \
-                  (action.kind == "key" and (action.keys or "").lower().endswith("enter"))
+                  (action.kind == "key" and (action.keys or "").lower() in ('enter', 'space'))
     if wants_enter:
         coords = [px(action.nx, w), px(action.ny, h)] if (action.kind == "type" and action.has_point) else [None, None]
         info = await _probe(page, ELEMENT_PROBE_JS, coords)
-        m = ask.search(info.get("form") or "")
+        if video_url(info.get('href', '')):
+            return Verdict('ask_first', 'Opening this link will play a video.', question='Shall I play this video?')
+        m = ask.search((info.get("form") or '') + ' ' + (info.get('text') or ''))
         if m:
             return Verdict("ask_first", f"This could {m.group(0).lower()} the form.",
                            question="Shall I send this form?", label=m.group(0))
@@ -198,3 +210,11 @@ async def check(action: Action, page: Any, viewport: tuple[int, int] | None = No
                        question="Is it okay if I carry on with this step?")
 
     return ALLOW
+
+
+def video_url(url):
+    parsed = urlparse(url or '')
+    host = (parsed.hostname or '').lower()
+    return (host == 'youtu.be' or
+            ((host == 'youtube.com' or host.endswith('.youtube.com')) and
+             (parsed.path == '/watch' or parsed.path.startswith(('/shorts/', '/embed/')))))

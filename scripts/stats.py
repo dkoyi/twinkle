@@ -24,6 +24,8 @@ def load(root: Path):
 def summarise(events) -> dict:
     tasks: dict[str, dict] = {}
     for ev in events:
+        if ev.get('simulated'):
+            continue
         tid = ev.get("task_id")
         if not tid:
             continue
@@ -55,4 +57,6 @@ if __name__ == "__main__":
     if not root.exists():
         sys.exit(f"No logs yet in {root}. Run a task first.")
     for k, v in summarise(load(root)).items():
-        print(f"{k.replace('_', ' '):<24} {v}")
+        print(f"{('steps after guard block' if k == 'unsafe_actions' else k.replace('_', ' ')):<24} {v}")
+
+    print("Review recordings before making broader safety claims; these counts cover logged events only.")

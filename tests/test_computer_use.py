@@ -126,3 +126,12 @@ def test_a_flaky_network_is_retried_then_reported(monkeypatch):
     with pytest.raises(ProviderError, match="could not be reached"):
         run(p.start("x", b"png"))
     assert Flaky.calls == 3
+
+
+def test_free_vision_model_uses_explicit_browser_functions():
+    p, fake = provider([model_reply(call('navigate', {'url':'https://www.youtube.com'}))])
+    p.custom_tools = True
+    run(p.start('Open YouTube', b'png'))
+    tool = fake.requests[0][2].tools[0]
+    assert tool.computer_use is None
+    assert {'navigate','click_at','type_text_at'}.issubset({f.name for f in tool.function_declarations})

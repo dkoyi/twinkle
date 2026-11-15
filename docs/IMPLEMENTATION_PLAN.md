@@ -35,10 +35,10 @@ The UI work does **not** touch `app/*`. It only needs the event contract in `doc
 | `app/events.py` | The shared `bus`. `await bus.publish("step", ...)` from anywhere; `bus.state` keeps the live snapshot |
 | `app/dashboard.py` | `/ws/dashboard`, `/api/state`, `/api/screenshot`, and the button endpoints. Call `set_screenshot(jpeg_bytes)` to get the URL for a `screenshot` event |
 | `app/main.py` | The FastAPI app. Add your routers here and launch Playwright in `lifespan` |
-| `app/dev_replay.py` | `POST /api/dev/replay?scenario=dal` or `iphone` plays a fake call so the UI works with no backend |
+| `app/dev_replay.py` | `POST /api/dev/replay?scenario=dal` or `iphone` plays an explicitly simulated call; opt-in with `DEV_REPLAY=true` (localhost only) |
 | `static/*` | The dashboard (`/dashboard`). Practice mode with no server: `/static/dashboard.html?demo=dal` |
 
-**Plugging in:** when your task runner is ready, replace the button defaults, for example `dashboard.hooks.confirm = task_runner.confirm` (same for `cancel`, `stop`, `reset`, `start_task`). Run it with `uvicorn app.main:app --reload --port 8000`, then open `http://localhost:8000/dashboard` and POST to `/api/dev/replay` to watch it move. `pytest` runs the tests.
+**Plugging in:** when your task runner is ready, replace the button defaults, for example `dashboard.hooks.confirm = task_runner.confirm` (same for `cancel`, `stop`, `reset`, `start_task`). Prefer `from app.integration import attach_runner; attach_runner(runner)` so the same runner receives both voice and dashboard commands. Unset hooks no longer publish fake successes. Run with `uvicorn app.main:app --reload --port 8000`, open `http://localhost:8000/talk` for the free browser voice demo and `http://localhost:8000/dashboard` to watch it. The real browser agent and safety guard are now initialized and attached at server startup. The accepted demo uses the browser phone interface; real telephone streaming remains unverified. `pytest` runs the tests.
 
 ## 2c. Browser agent (built; needs one real-key test)
 

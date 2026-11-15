@@ -146,3 +146,29 @@ def test_label_for_gives_a_short_label():
     page = FakePage(element={"text": "Join Meeting", "form": "", "tag": "button"})
     assert run(safety.label_for(click(), page)) == "Join Meeting"
     assert run(safety.label_for(Action("scroll"), page)) == ""
+
+
+def test_opening_youtube_video_requires_approval_before_navigation():
+    v = run(safety.check(Action('navigate',url='https://www.youtube.com/watch?v=demo'), FakePage()))
+    assert v.kind == 'ask_first' and 'play' in v.question
+
+
+def test_model_block_cannot_be_downgraded_to_an_approval():
+    v = run(safety.check(Action('navigate',url='https://www.youtube.com/watch?v=demo',
+        safety_decision={'decision':'blocked'}), FakePage()))
+    assert v.kind == 'block'
+
+
+def test_typing_can_click_a_risky_button_so_it_also_needs_approval():
+    page = FakePage(element={'text':'Join meeting','form':'','tag':'button'})
+    assert run(safety.check(Action('type',nx=500,ny=500,text='hello'),page)).kind == 'ask_first'
+
+
+def test_keyboard_activation_of_video_link_requires_approval():
+    page = FakePage(element={'text':'Cooking video','form':'','tag':'a','href':'https://www.youtube.com/watch?v=demo'})
+    assert run(safety.check(Action('key',keys='Enter'),page)).kind == 'ask_first'
+
+
+def test_human_verification_check_stops_the_agent():
+    page = FakePage(page={'password':False,'card':False,'challenge':True})
+    assert run(safety.check_page(page)).kind == 'block'

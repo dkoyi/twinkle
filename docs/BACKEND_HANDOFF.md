@@ -250,3 +250,11 @@ The `reason` is spoken to the caller and shown on the red/yellow banner, so writ
 - `pytest` green. `logs/` has one file per call with the numbers for the pitch.
 
 Questions: ask in the group chat, tag the owner from the table at the top. Change this file when you change a contract.
+
+## Implementation note: Maulik's voice interface
+
+The initial phone/voice backend now uses the shared event bus for all browser
+commands, as required by section 1. See [Maulik's setup guide](MAULIK_SETUP.md)
+for the `voice_command` / `voice_command_result` fields and `attach_runner`
+registration. The bridge already subscribes to commands; do not add a duplicate listener. `app/main.py` and `app/events.py` are in place; merge these shared files
+carefully when adding browser startup and the remaining dashboard endpoints.

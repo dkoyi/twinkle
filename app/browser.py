@@ -7,6 +7,8 @@ from __future__ import annotations
 
 import asyncio
 import sys
+import os
+from pathlib import Path
 from typing import Optional
 
 from playwright.async_api import BrowserContext, Page, async_playwright
@@ -27,6 +29,7 @@ class Browser:
         self._browser = None
         self._context: Optional[BrowserContext] = None
         self._page: Optional[Page] = None
+        self.recordings: list[str] = []
 
     # ---------- lifecycle ----------
     async def start(self) -> None:
@@ -38,10 +41,17 @@ class Browser:
             args += ["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream"]
         self._pw = await async_playwright().start()
         self._browser = await self._pw.chromium.launch(headless=s.headless, args=args)
+        recording = {}
+        if os.getenv('DEMO_RECORD_VIDEO', 'false').lower() == 'true':
+            root = Path(os.getenv('DEMO_RECORD_DIR', 'demo-artifacts/recordings'))
+            root.mkdir(parents=True, exist_ok=True)
+            recording = {'record_video_dir': str(root),
+                         'record_video_size': {'width': s.viewport_w, 'height': s.viewport_h}}
         self._context = await self._browser.new_context(
             viewport={"width": s.viewport_w, "height": s.viewport_h},
             accept_downloads=False,
             locale="en-US",
+            **recording,
         )
         self._context.on("page", self._on_new_page)
         self._page = await self._context.new_page()
@@ -50,6 +60,11 @@ class Browser:
 
     async def stop(self) -> None:
         try:
+            if self._context:
+                videos = [page.video for page in self._context.pages if page.video]
+                await self._context.close()
+                for video in videos:
+                    self.recordings.append(str(await video.path()))
             if self._browser:
                 await self._browser.close()
             if self._pw:
@@ -95,7 +110,14 @@ class Browser:
         return await self.page.screenshot(type="png")
 
     async def screenshot_jpeg(self, quality: int = 70) -> bytes:
-        return await self.page.screenshot(type="jpeg", quality=quality)
+        return await self.page.screenshot(type="jpeg", quality=quality, timeout=5000)
+
+    async def media_state(self) -> dict:
+        return await self.page.evaluate('''() => {
+            const v = document.querySelector('video');
+            return v ? {present:true, paused:v.paused, current_time:v.currentTime,
+                ready_state:v.readyState, ended:v.ended} : {present:false};
+        }''')
 
     # ---------- navigation ----------
     async def goto(self, url: str) -> None:

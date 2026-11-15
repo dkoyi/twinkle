@@ -52,8 +52,8 @@ def get_settings() -> Settings:
         start_url=os.getenv("START_URL", "http://localhost:8000/static/start.html"),
         viewport_w=_int("VIEWPORT_W", 1280),
         viewport_h=_int("VIEWPORT_H", 800),
-        computer_use_model=os.getenv("COMPUTER_USE_MODEL", "gemini-2.5-computer-use-preview-10-2025"),
-        describe_model=os.getenv("DESCRIBE_MODEL", "gemini-2.5-flash"),
+        computer_use_model=os.getenv("COMPUTER_USE_MODEL", "gemini-3.1-flash-lite"),
+        describe_model=os.getenv("DESCRIBE_MODEL", "gemini-3.1-flash-lite"),
         gemini_api_key=os.getenv("GEMINI_API_KEY", ""),
         approval_timeout_s=_int("APPROVAL_TIMEOUT_S", 60),
     )
