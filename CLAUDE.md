@@ -13,6 +13,10 @@ An older person calls a phone number and says what they need ("help me join my g
 - Hackathon rule: all code is written during the event. Don't copy in old projects.
 - The team is mostly **non-technical**. When you explain something to us, use plain words, define every term once, and give one step at a time. After each change, tell us exactly how to test it (what to run, what we should see).
 
+## Scope and priority (read `docs/IMPLEMENTATION_PLAN.md`)
+
+We compete for **Best Overall**, plus two sponsor prizes: **Best Use of Gemini API** and **Supermemory**. Nothing else (no Tiger Data, Solana, TinyFish, Vultr, Auth0, AWS). The Gemini path (voice + computer use) is the backbone and gets built and finished first. **Supermemory is built last**, only after a full phone call with a voice-approved task works. Submission is **11 AM Sunday on Devpost, no late submissions**, and no commits after hacking ends. The UI (dashboard + `/family` page) must feel fluid and calm; it is what judges watch.
+
 ## Architecture (keep it this simple)
 
 ```
@@ -67,3 +71,5 @@ Speak slowly, warmly, in short sentences. Describe what you're doing before you 
 - `docs/SPEC.md`: full product spec, user flow, demo tasks
 - `docs/BUILD_STEPS.md`: milestones with the exact prompt to give Claude Code for each
 - `docs/DEMO_SCRIPT.md`: the 3-minute demo, backup plan, Devpost text
+- `docs/BACKEND_HANDOFF.md`: backend ownership, event contract, traps
+- `docs/IMPLEMENTATION_PLAN.md`: current scope, build order, UI and backend requirements, Supermemory plan

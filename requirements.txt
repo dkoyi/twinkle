@@ -3,6 +3,8 @@ uvicorn[standard]>=0.30,<1
 websockets>=14,<17
 twilio>=9,<10
 google-genai>=1.60,<3
+anthropic
+playwright
 python-dotenv>=1,<2
 python-multipart>=0.0.20,<1
 numpy>=2,<3

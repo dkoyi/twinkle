@@ -1,0 +1,100 @@
+# TechTwin — implementation plan (v2)
+
+Written 14 Nov 2026, after reading the sunhacks opening slides and the sponsor/MLH prize pages. This sits on top of `CLAUDE.md`, `docs/SPEC.md` and `docs/BACKEND_HANDOFF.md`. Where they disagree, **this file wins on scope and priority**; the handoff still wins on event names and API shapes.
+
+## 1. Scope decision
+
+We compete for **Best Overall** and enter exactly two sponsor prizes:
+
+| Prize | Role | Priority |
+| --- | --- | --- |
+| **Best Overall** | The real goal. Reliable live demo, polished UI, the safety story | Everything |
+| **Best Use of Gemini API** (MLH) | Gemini is the backbone: voice, computer use, screen description | **Build first, finish first** |
+| **Supermemory** (we have credits) | Remembers Grandma's family, sites and past tasks | **Last.** Only after the Gemini path works end to end |
+
+**Dropped:** Tiger Data, Solana, TinyFish, Vultr, Auth0, AWS, MongoDB. Call logs stay as local JSONL files. Public URL stays ngrok.
+
+**Hard rules from the slides:** hacking is 11:10 AM Sat to **11:00 AM Sun, late submissions not accepted**. Devpost must be filled in. Demo is 3 minutes plus 2 minutes of questions, and **the hack is judged, not slides**. No commits before hacking starts or after it ends. Submit early.
+
+## 2. Who builds what
+
+| Area | Owner | Files |
+| --- | --- | --- |
+| Dashboard UI + family page | Shrey (with Claude Code here) | `static/*`, `scripts/fake_events.py` |
+| Phone + Gemini Live voice | Maulik | `app/twilio_stream.py`, `app/audio.py`, `app/voice_brain.py` |
+| Browser agent + safety | Dhaush | `app/task_runner.py`, `app/safety.py`, `scripts/try_task.py`, `tests/` |
+| Glue | Maulik + Dhaush | `app/main.py`, `app/events.py`, `app/dashboard.py`, `app/call_log.py` |
+| Memory (Supermemory) | Whoever is free, **last** | `app/memory.py` |
+
+The UI work does **not** touch `app/*`. It only needs the event contract in `docs/BACKEND_HANDOFF.md` section 2, so it can run against fake events with no backend.
+
+## 3. Build order
+
+**Phase 1: Gemini backbone (must work before anything else)**
+1. `app/events.py` event bus (30 minutes, together).
+2. Phone answers (M1), echo test (M2), Gemini Live conversation with barge-in (M3).
+3. Browser agent from the terminal (M4) and safety guard with tests (M5).
+4. Voice tools wired to the task runner, approvals by voice, stop word (M7).
+5. Demo-proofing: reset, timeouts, spoken recovery, call logs (M8).
+
+**Phase 2: UI (parallel with phase 1, against fake events)**
+1. Dashboard (below).
+2. Family page.
+3. Swap fake events for the real bus when M4 lands.
+
+**Phase 3: Supermemory (only after phase 1 passes its checks)**
+
+**Phase 4: proof + submit.** Five testers, backup video, Devpost text. Aim to submit well before 11:00 AM Sunday.
+
+## 4. UI requirements (the most visible part)
+
+Judges read this screen from 2 metres. It must feel fluid, calm and obvious.
+
+**Dashboard (`/dashboard`)**
+- Big live screenshot (left), live transcript with large text and a "listening / talking" indicator (right), step list with timestamps and status icons (bottom).
+- Yellow **approval banner** with the question in huge text and Yes / No buttons (backup to voice). Red **blocked banner** with a plain reason.
+- Smooth transitions: new steps slide in, screenshots cross-fade, banners ease in and out, nothing jumps or flickers. Respect reduced-motion.
+- Calm friendly colours, plain words only, never technical terms, no selectors or long URLs.
+- Never crashes: unknown event types are ignored, a dropped WebSocket reconnects by itself and replays the snapshot, an empty state looks designed rather than blank.
+- Controls: Reset, Start task (for demoing without the phone), Stop.
+- Works at 1080p on a projector and on a laptop.
+
+**Family page (`/family`)**: a simple read-only "watch along" view plus Stop and approve buttons, and a list of recent tasks. Same app, same WebSocket. No login.
+
+**Mascot**: a small friendly "twin" character on the dashboard (picks up the sunhacks Best Mascot track for free). Optional, last in the UI queue.
+
+## 5. Backend requirements (what the teammate builds)
+
+Follow `docs/BACKEND_HANDOFF.md` for the full detail. Summary of what must exist:
+
+- **Endpoints:** `GET /dashboard`, `GET /family`, `GET /api/state`, `GET /api/screenshot`, `POST /api/reset|confirm|cancel|start_task`, `POST /voice`, `WS /media`, `WS /ws/dashboard`.
+- **Events** (names fixed, see handoff): `call_started`, `call_ended`, `transcript`, `task_started`, `step`, `screenshot`, `needs_approval`, `approval_result`, `blocked`, `task_finished`, `agent_speaking`, `error`, `reset`.
+- **Audio:** Twilio 8 kHz mu-law to Gemini 16 kHz PCM in, Gemini 24 kHz PCM to 8 kHz mu-law out, 20 ms paced frames, barge-in via Twilio `clear`.
+- **Gemini:** Live model and computer-use model names live in `.env` (`GEMINI_LIVE_MODEL`, `COMPUTER_USE_MODEL`), verified against current docs before coding.
+- **Safety:** ask-first words, block on password/card/checkout and non-allowlisted domains, stop word handled in code (not left to the model).
+- **Must pass:** the checks in `BACKEND_HANDOFF.md` section 9.
+
+New for this plan: add `GET /family` to the contract, and keep `.env.example` in sync (`GEMINI_LIVE_MODEL`, `COMPUTER_USE_MODEL`, later `SUPERMEMORY_API_KEY`).
+
+## 6. Supermemory (phase 3, last)
+
+Do not start until a full phone call with a voice-approved task works.
+
+- `app/memory.py` wraps the Supermemory SDK behind two functions: `remember(caller_id, text)` and `recall(caller_id, query) -> str`. Check the current Supermemory docs for the API version before writing it (older docs show a different base URL and header).
+- Use it for: family member names ("Rahul is my grandson"), favourite sites, and past tasks, so "play the dal video again" works.
+- Recall at call start and inject into the Gemini system instruction; store a one-line summary at `task_finished`.
+- If Supermemory is down or the key is missing, the app must carry on silently. It can never block a call.
+- Show it on the dashboard as a small "TechTwin remembers: ..." chip so judges can see it.
+
+## 7. Demo requirements
+
+Main demo: the YouTube dal video or the Zoom/Meet join, with a spoken approval. Safety demo: "Buy me the new iPhone" ends in a red banner. Backups: `POST /api/start_task` if the phone line fails, and a recorded video. Twilio trial accounts only accept verified numbers, so verify every phone that will call.
+
+## 8. Risks to watch
+
+1. Gemini model names change; read the docs first and keep names in `.env`.
+2. Audio sample-rate mistakes (chipmunk or slow voice); the echo test catches this.
+3. ngrok URL changes on restart; reserve a static domain.
+4. Computer-use coordinates are 0-999 and must be scaled to the viewport.
+5. Wi-Fi at the venue; keep the backup video ready.
+6. Late submission is not accepted; stop adding features by about 8 AM Sunday.
