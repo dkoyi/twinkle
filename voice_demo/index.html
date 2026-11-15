@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Talk to TechTwin</title>
+<link rel="stylesheet" href="/voice-demo/style.css">
+<script src="/voice-demo/talk.js" defer></script>
+</head>
+<body>
+<header><a class="brand" href="/talk"><span class="brand-icon" aria-hidden="true">T</span> TechTwin</a><span class="badge">Browser voice demo</span></header>
+<main>
+<section class="intro"><p class="eyebrow">A little help. A friendly voice.</p><h1>Let’s take it<br>one step at a time.</h1><p>Tell TechTwin what you need help with.<br>Speak naturally. There’s no rush.</p></section>
+<section class="conversation" aria-label="Voice conversation">
+<div class="call-panel"><div id="orb" class="orb" aria-hidden="true"><span>✦</span></div>
+<h2 id="status" role="status" aria-live="polite">Ready when you are</h2>
+<p id="hint">Use your laptop’s microphone and speakers.</p>
+<div class="buttons"><button id="start" class="primary">Start talking <span aria-hidden="true">↗</span></button><button id="end" hidden>End conversation</button></div>
+<button id="stop" class="stop" hidden>Stop the computer</button>
+<p class="privacy">Your microphone is active only during a conversation.<br>Audio is sent to Google Gemini to respond.</p>
+</div>
+<div class="transcript-panel"><div class="transcript-heading"><h2>Our conversation</h2><span id="connection">Not connected</span></div>
+<div id="notice" role="status" hidden></div><div id="transcript" role="log" aria-live="polite"><p id="empty">Your words and TechTwin’s replies will appear here.</p></div>
+</div>
+</section>
+<footer><span class="dot"></span> You’re in control. Say “stop” at any time.<span class="footer-note">Browser actions need the team’s computer helper to be connected.</span></footer>
+</main>
+</body></html>

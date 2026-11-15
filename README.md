@@ -4,6 +4,17 @@ Call a number, say what you need, and watch your own computer do it, slowly and 
 
 Built at sunhacks 2026 (ASU).
 
+## Free voice demo
+
+Set `GEMINI_API_KEY` in `.env`, run the server, then open
+http://localhost:8000/talk on the laptop. Click **Start talking** and allow the
+microphone. This browser demo uses Gemini directly through our server and does
+not need Twilio or ngrok. Free-tier usage is subject to your Google project's
+quota. Browser control still needs the team's task runner integration.
+
+See [Maulik's setup guide](docs/MAULIK_SETUP.md) for details. Remote browser voice
+access is disabled until authentication is added; use localhost for this demo.
+
 ## Team
 
 - **Shrey** — dashboard UI (`static/`)
@@ -33,6 +44,25 @@ Backend people: start with `docs/BACKEND_HANDOFF.md`.
 
 ## Accounts you need
 
-- **Twilio** (twilio.com): free trial and a phone number. On a trial, verify every phone that will call it.
+- **Twilio** (twilio.com): upgraded account and a Voice-capable phone number. The current trial blocks `<Stream>`, which our live audio requires. See [trial restrictions](https://www.twilio.com/docs/usage/trials/try-out-voice#blocked-verbs).
 - **Gemini API key** (aistudio.google.com): free.
 - **ngrok** (ngrok.com): free.
+
+## Phone backend (Maulik)
+
+The phone and voice implementation is ready for local testing. Follow
+[Maulik's setup guide](docs/MAULIK_SETUP.md) to run the server, test the phone
+with echo mode, then enable Gemini conversation. That guide also documents the
+event interface Dhaush connects to the browser agent.
+
+```sh
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements-dev.txt
+cp -n .env.example .env
+uvicorn app.main:app --reload --port 8000
+```
+
+Run the offline checks with `python -m pytest -q`. Real phone calls require
+Twilio credentials and an ngrok address in `.env`; Gemini mode also needs a
+Gemini API key. Browser automation and Shrey's dashboard are separate team work.
